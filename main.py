@@ -15,16 +15,23 @@ LOGGER = logging.getLogger()
 LOG_FORMAT = '%(asctime)s.%(msecs)03d - %(levelname)s - %(message)s'
 LOG_DATE_FORMAT = '%H:%M:%S'
 
+# log format
+LOG_FORMATTER = logging.Formatter(LOG_FORMAT, datefmt=LOG_DATE_FORMAT)
+
+# log level
+LOGGER.setLevel(logging.DEBUG)
+
 LOG_FILE_HANDLER = None
-def update_log_file(self, log_file_handler):
+def update_log_file():
     """
     Updates the current log file name to the current date.
     """
-    if log_file_handler != None: LOGGER.removeHandler(self.log_file_handler)
-    log_file_handler = logging.FileHandler(f"logs/{datetime.datetime.now().date()}.log", mode='a')
-    log_file_handler.setFormatter(self.log_formatter)
-    log_file_handler.setLevel(logging.DEBUG)
-    LOGGER.addHandler(self.log_file_handler)
+    global LOG_FILE_HANDLER, LOG_FORMATTER
+    if LOG_FILE_HANDLER != None: LOGGER.removeHandler(LOG_FILE_HANDLER)
+    LOG_FILE_HANDLER = logging.FileHandler(f"logs/{datetime.datetime.now().date()}.log", mode='a')
+    LOG_FILE_HANDLER.setFormatter(LOG_FORMATTER)
+    LOG_FILE_HANDLER.setLevel(logging.DEBUG)
+    LOGGER.addHandler(LOG_FILE_HANDLER)
 
 def log_exception_handler(e_type, value, tb):
     """
@@ -33,12 +40,6 @@ def log_exception_handler(e_type, value, tb):
     message = f"{e_type.__name__}: {value}\n{''.join(str(line) for line in sys.tracebacklimit.format_tb(tb))}"
     LOGGER.critical(message)
 sys.excepthook = log_exception_handler
-
-# log level
-LOGGER.setLevel(logging.DEBUG)
-
-# log format
-LOG_FORMATTER = logging.Formatter(LOG_FORMAT, datefmt=LOG_DATE_FORMAT)
 
 # stdout logging
 log_stdout_handler = logging.StreamHandler(sys.stdout)
@@ -88,7 +89,7 @@ def main(config):
     LOGGER.info("Starting main loop.")
     while not TERM.is_set():
 
-        update_log_file(LOG_FILE_HANDLER)
+        update_log_file()
 
         # get moving average of temp and humidity
         reading = DHT.avg
