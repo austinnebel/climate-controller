@@ -9,7 +9,7 @@ class Heater:
         self.relay = Relay(pin)
 
     def is_on(self):
-        return self.relay.is_on()
+        return not self.relay.is_on()
 
     def on(self):
         if not self.is_on():
