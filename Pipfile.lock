@@ -1,11 +1,11 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "cd4254b0e8533d3bf1d03674f402fdda9da4a1bd4aef5431b684a8948281d19e"
+            "sha256": "d2d5e60eade088208ddb3c6e6500b0fa53f7121f35d491c27348c136017b0a4b"
         },
         "pipfile-spec": 6,
         "requires": {
-            "python_version": "3.8"
+            "python_version": "3.7"
         },
         "sources": [
             {
@@ -16,6 +16,13 @@
         ]
     },
     "default": {
+        "adafruit-dht": {
+            "hashes": [
+                "sha256:e927f2232eff5335cb9d8a2cca6dcad4625e61f205b12e31ef04198ea6dec830"
+            ],
+            "index": "pypi",
+            "version": "==1.4.0"
+        },
         "rpi.gpio": {
             "hashes": [
                 "sha256:7424bc6c205466764f30f666c18187a0824077daf20b295c42f08aea2cb87d3f"
