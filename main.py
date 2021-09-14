@@ -1,23 +1,55 @@
 import configparser
 import datetime
 import logging
+import signal
 import sys
-from threading import Thread
+from threading import Thread, Event
 from time import sleep
 from devices import TempSensor, Heater, Humidifier
 from server import Server
 
+
 LOGGER = logging.getLogger()
-LOGFILE = 'logs/%s.log' % (str(datetime.datetime.today()).split()[0])
-log_format = f'%(asctime)s.%(msecs)03d - %(levelname)s - %(message)s'
-log_date_format = '%H:%M:%S'
-logging.basicConfig(filename=LOGFILE, level=logging.INFO, format=log_format, datefmt=log_date_format)
-handler = logging.StreamHandler(sys.stdout)
-handler.setFormatter(logging.Formatter(log_format, datefmt=log_date_format))
-handler.setLevel(logging.INFO)
-LOGGER.addHandler(handler)
+
+# log inline format and date format
+LOG_FORMAT = '%(asctime)s.%(msecs)03d - %(levelname)s - %(message)s'
+LOG_DATE_FORMAT = '%H:%M:%S'
+
+LOG_FILE_HANDLER = None
+def update_log_file(self, log_file_handler):
+    """
+    Updates the current log file name to the current date.
+    """
+    if log_file_handler != None: LOGGER.removeHandler(self.log_file_handler)
+    log_file_handler = logging.FileHandler(f"logs/{datetime.datetime.now().date()}.log", mode='a')
+    log_file_handler.setFormatter(self.log_formatter)
+    log_file_handler.setLevel(logging.DEBUG)
+    LOGGER.addHandler(self.log_file_handler)
+
+def log_exception_handler(e_type, value, tb):
+    """
+    Allows for exceptions to be logged before interupting the program.
+    """
+    message = f"{e_type.__name__}: {value}\n{''.join(str(line) for line in sys.tracebacklimit.format_tb(tb))}"
+    LOGGER.critical(message)
+sys.excepthook = log_exception_handler
+
+# log level
+LOGGER.setLevel(logging.DEBUG)
+
+# log format
+LOG_FORMATTER = logging.Formatter(LOG_FORMAT, datefmt=LOG_DATE_FORMAT)
+
+# stdout logging
+log_stdout_handler = logging.StreamHandler(sys.stdout)
+log_stdout_handler.setFormatter(LOG_FORMATTER)
+log_stdout_handler.setLevel(logging.DEBUG)
+LOGGER.addHandler(log_stdout_handler)
+
 
 def main(config):
+
+    TERM = Event()
 
     DESIRED_TEMP = config.getint("THERMOSTAT", "desired_temp")
     DESIRED_HUM = config.getint("THERMOSTAT", "desired_humidity")
@@ -35,36 +67,53 @@ def main(config):
     HUMIDIFIER = Humidifier(humidity_gpio)
     DHT = TempSensor(dht22_gpio, buffer_size=BUFFER_SIZE)
 
+    def exit_handler(sig, frame):
+        LOGGER.info("Exiting Session")
+        if HEATER: HEATER.on()
+        if HUMIDIFIER: HUMIDIFIER.off()
+        if DHT: DHT.terminate()
+        TERM.set()
+    signal.signal(signal.SIGINT, exit_handler)
+    signal.signal(signal.SIGTERM, exit_handler)
+
     DHT.start()
 
-    while not DHT.get_readings():
-        sleep(0.1)
+    LOGGER.info("Waiting for DHT readings..")
+    while not DHT.get_readings() and not TERM.is_set():
+        TERM.wait(0.1)
 
-    server = Server(DHT, HEATER, HUMIDIFIER, PORT)
-    server.start()
+    SERVER = Server(DHT, HEATER, HUMIDIFIER, PORT)
+    SERVER.start()
 
-    print("Starting")
-    while True:
-        #get temp, convert to fahrenheit
-        reading = DHT.get_readings()
+    LOGGER.info("Starting main loop.")
+    while not TERM.is_set():
+
+        update_log_file(LOG_FILE_HANDLER)
+
+        # get moving average of temp and humidity
+        reading = DHT.avg
         temp = reading.temp
         hum = reading.hum
 
         if temp is None:
-            print("ERROR: Can't read sensor.")
+            LOGGER.error("ERROR: Can't read sensor.")
             continue
         else:
-            LOGGER.info(reading)
+            LOGGER.info(f"{reading}   -   Heater: {HEATER.is_on()}   -   Humidifier: {HUMIDIFIER.is_on()}")
 
-        if not HEATER.is_on and temp < DESIRED_TEMP-TEMP_RANGE:
+        LOGGER.debug(f"Buffer: {[str(r) for r in DHT.get_buffers()]}")
+
+        if not HEATER.is_on() and temp < DESIRED_TEMP-TEMP_RANGE:
             HEATER.on()
-        if HEATER.is_on and temp > DESIRED_TEMP+TEMP_RANGE:
+        if HEATER.is_on() and temp > DESIRED_TEMP+TEMP_RANGE:
             HEATER.off()
 
         if hum < DESIRED_HUM-HUM_RANGE and not hum < 0 and not hum > 100:
             HUMIDIFIER.spray(15)
 
-        sleep(60)
+        TERM.wait(60)
+
+    LOGGER.info("Exit successfull.")
 
 if __name__ == "__main__":
     config = configparser.ConfigParser()
