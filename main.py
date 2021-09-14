@@ -5,7 +5,7 @@ import sys
 from threading import Thread
 from time import sleep
 from devices import TempSensor, Heater, Humidifier
-
+from server import Server
 
 LOGGER = logging.getLogger()
 LOGFILE = 'logs/%s.log' % (str(datetime.datetime.today()).split()[0])
@@ -25,6 +25,8 @@ def main(config):
     HUM_RANGE = config.getint("THERMOSTAT", "humidity_range")
     BUFFER_SIZE = config.getint("THERMOSTAT", "buffer_size")
 
+    PORT = config.getint("SERVER", "port")
+
     heater_gpio = config.getint("GPIO", "heater")
     humidity_gpio = config.getint("GPIO", "humidifier")
     dht22_gpio = config.getint("GPIO", "dht22")
@@ -37,6 +39,9 @@ def main(config):
 
     while not DHT.get_readings():
         sleep(0.1)
+
+    server = Server(DHT, HEATER, HUMIDIFIER, PORT)
+    server.start()
 
     print("Starting")
     while True:
