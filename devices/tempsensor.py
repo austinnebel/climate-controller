@@ -1,59 +1,88 @@
 from threading import Thread
 import logging
+import time
+import datetime
 import Adafruit_DHT
-
 
 LOGGER = logging.getLogger()
 
+
+class Reading:
+
+    def __init__(self, temp, hum, use_fahrenheit = True):
+        self.use_fahrenheit = use_fahrenheit
+
+        if temp != None:
+            if self.use_fahrenheit:
+                temp = (temp * 9/5) + 32
+            temp = round(temp, 2)
+        if hum != None:
+            hum = round(hum, 2)
+
+        self.temp = temp
+        self.hum = hum
+        self.time = datetime.datetime.now()
+
+    def __str__(self):
+        unit = "C"
+        if self.use_fahrenheit:
+            unit = "F"
+        return f"{self.temp}{unit} {self.hum}% {self.time.strftime('%H:%M:%S')}"
+
 class TempSensor(Thread):
 
-    def __init__(self, pin, use_fahrenheit = True, buffer_size = 15):
+    def __init__(self, pin, use_fahrenheit = True, buffer_size = 10):
+        Thread.__init__(self)
+        self.daemon = True
         self.sensor = Adafruit_DHT.DHT22
         self.pin = pin
-        self.humidity_buff = []
-        self.temperature_buff = []
+        self.reading_buff = []
         self.use_fahrenheit = use_fahrenheit
         self.buffer_size = buffer_size
 
     @property
     def temperature(self):
-        if len(self.temperature_buff) > 0:
-            return self.temperature_buff[-1]
+        if len(self.reading_buff) > 0:
+            return self.reading_buff[-1].temp
         return None
 
     @property
     def humidity(self):
-        if len(self.humidity_buff) > 0:
-            return self.humidity_buff[-1]
+        if len(self.reading_buff) > 0:
+            return self.reading_buff[-1].hum
         return None
 
-    @temperature.setter
-    def temperature(self, temp):
-        if len(self.temperature_buff) > self.buffer_size:
-            self.temperature_buff.pop(0)
-        if self.use_fahrenheit:
-            temp = (temp * 9/5) + 32
-        self.temperature_buff.append(temp)
+    @property
+    def read(self):
+        if len(self.reading_buff) > 0:
+            return self.reading_buff[-1]
+        return None
 
-    @humidity.setter
-    def humidity(self, hum):
-        if len(self.humidity_buff) > self.buffer_size:
-            self.humidity_buff.pop(0)
-        self.humidity_buff.append(hum)
+    @read.setter
+    def read(self, reading : Reading):
+        if len(self.reading_buff) >= self.buffer_size:
+            self.reading_buff.pop(0)
+        self.reading_buff.append(reading)
 
     def get_readings(self):
-        return self.temperature, self.humidity
+        return self.read
 
-    def read(self):
+    def get_buffers(self):
+        return self.reading_buff
+
+    def get_data(self):
         humidity, temperature = Adafruit_DHT.read_retry(self.sensor, self.pin)
-        return humidity, temperature
+        if humidity != None: humidity = round(humidity, 2)
+        if temperature != None: temperature = round(temperature, 2)
+        return Reading(temperature, humidity, use_fahrenheit=self.use_fahrenheit)
 
     def run(self):
         while True:
             try:
-                self.humidity, self.temperature = self.read()
+                self.read = self.get_data()
             except Exception as e:
                 LOGGER.error(f"Error reading from DHT22: {str(e)}")
+            time.sleep(2)
 
 
 

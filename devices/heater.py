@@ -9,12 +9,14 @@ class Heater:
         self.relay = Relay(pin)
 
     def is_on(self):
-        return self.relay.value()
+        return self.relay.is_on()
 
     def on(self):
-        LOGGER.info("Activating heater.")
-        self.relay.value(0)
+        if not self.is_on():
+            LOGGER.info("Activating heater.")
+            self.relay.off()
 
     def off(self):
-        LOGGER.info("Deactivating heater.")
-        self.relay.value(1)
+        if self.is_on():
+            LOGGER.info("Deactivating heater.")
+            self.relay.on()

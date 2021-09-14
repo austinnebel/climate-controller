@@ -1,5 +1,6 @@
 import logging
 from time import sleep
+from threading import Thread
 from .relay import Relay
 
 LOGGER = logging.getLogger()
@@ -10,18 +11,25 @@ class Humidifier:
         self.relay = Relay(pin)
 
     def is_on(self):
-        return self.relay.value()
+        return self.relay.is_on()
 
     def on(self):
-        LOGGER.info("Activating Humidifier.")
-        self.relay.value(0)
+        if not self.is_on():
+            LOGGER.info("Activating Humidifier.")
+            self.relay.on()
 
     def off(self):
-        LOGGER.info("Deactivating Humidifier.")
-        self.relay.value(1)
+        if self.is_on():
+            LOGGER.info("Deactivating Humidifier.")
+            self.relay.off()
 
-    def spray(self, spray_time):
-        print("Spraying humidifier for {} seconds.".format(self.spray_time))
+    def _spray(self, spray_time):
         self.on()
         sleep(spray_time)
         self.off()
+
+    def spray(self, spray_time):
+        print(f"Spraying humidifier for {spray_time} seconds.")
+        t = Thread(target = self._spray, args = [spray_time])
+        t.start()
+

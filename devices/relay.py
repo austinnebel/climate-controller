@@ -1,20 +1,22 @@
+import atexit
 import logging
-from rpi.GPIO import Pin
+import RPi.GPIO as GPIO
 
 LOGGER = logging.getLogger()
+GPIO.setmode(GPIO.BCM)
+atexit.register(GPIO.cleanup)
 
 class Relay:
 
     def __init__(self, relay_pin):
         self.pin = relay_pin
-        self.relay = Pin(relay_pin, Pin.OUT)
-        self.is_on = False
+        GPIO.setup(self.pin, GPIO.OUT)
 
-    def value(self):
-        return self.relay.value
+    def is_on(self):
+        return GPIO.input(self.pin)
 
     def on(self):
-        self.relay.value(0)
+        GPIO.output(self.pin, GPIO.HIGH)
 
     def off(self):
-        self.relay.value(1)
+        GPIO.output(self.pin, GPIO.LOW)
