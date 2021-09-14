@@ -13,7 +13,7 @@ class Relay:
         GPIO.setup(self.pin, GPIO.OUT)
 
     def is_on(self):
-        return GPIO.input(self.pin)
+        return bool(GPIO.input(self.pin))
 
     def on(self):
         GPIO.output(self.pin, GPIO.HIGH)
