@@ -3,12 +3,11 @@ import datetime
 import logging
 import signal
 import sys
-from threading import Thread, Event
-from time import sleep
+from threading import Event
 import time
 import traceback
 from devices import TempSensor, Heater, Humidifier
-from server import Server, save_graph
+from server import Server, generate_graphs
 
 
 LOGGER = logging.getLogger()
@@ -51,6 +50,8 @@ LOGGER.addHandler(log_stdout_handler)
 
 
 def main(config):
+
+    LOGGER.debug("Starting service.")
 
     TERM = Event()
 
@@ -109,11 +110,11 @@ def main(config):
         temp = reading.temp
         hum = reading.hum
 
-        if temp is None:
+        if temp is None or hum is None:
             LOGGER.error("ERROR: Can't read sensor.")
             continue
         else:
-            LOGGER.info(f"{reading}   -   Heater: {HEATER.is_on()}   -   Humidifier: {HUMIDIFIER.is_on()}")
+            LOGGER.info(f"{reading}   -   Heater: {HEATER.is_on()}   -   Humidifier: {HUMIDIFIER.last_spray()}")
 
         LOGGER.debug(f"Buffer: {[str(r) for r in DHT.get_buffers()]}")
 
@@ -122,7 +123,7 @@ def main(config):
             plot_points.pop(0)
         plot_points.append(reading)
 
-        save_graph("Graph", plot_points, GRAPH_LOCATION)
+        generate_graphs(plot_points, HUMIDIFIER.spray_times, GRAPH_LOCATION)
 
         # run thermostat checks
         if temp < DESIRED_TEMP-TEMP_RANGE:
