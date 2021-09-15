@@ -4,9 +4,12 @@ verify_ssl = true
 name = "pypi"
 
 [packages]
-"rpi.gpio" = "*"
-Adafruit_DHT = "*"
+"RPi.GPIO" = "*"
+Adafruit-DHT = "*"
 beautifulsoup4 = "*"
+plotly = "*"
+matplotlib = "*"
+numpy = "*"
 
 [dev-packages]
 

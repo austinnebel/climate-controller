@@ -5,8 +5,10 @@ import signal
 import sys
 from threading import Thread, Event
 from time import sleep
+import time
+import traceback
 from devices import TempSensor, Heater, Humidifier
-from server import Server
+from server import Server, save_graph
 
 
 LOGGER = logging.getLogger()
@@ -37,7 +39,7 @@ def log_exception_handler(e_type, value, tb):
     """
     Allows for exceptions to be logged before interupting the program.
     """
-    message = f"{e_type.__name__}: {value}\n{''.join(str(line) for line in sys.tracebacklimit.format_tb(tb))}"
+    message = f"{e_type.__name__}: {value}\n{''.join(str(line) for line in traceback.format_tb(tb))}"
     LOGGER.critical(message)
 sys.excepthook = log_exception_handler
 
@@ -52,21 +54,28 @@ def main(config):
 
     TERM = Event()
 
+    # general settings
+    UPDATE_TIME = config.getint("GENERAL", "update_time")
+    GRAPH_DURATION = config.getint("GENERAL", "graph_duration")
+
+    # thermostat settings
     DESIRED_TEMP = config.getint("THERMOSTAT", "desired_temp")
     DESIRED_HUM = config.getint("THERMOSTAT", "desired_humidity")
     TEMP_RANGE = config.getint("THERMOSTAT", "temp_range")
     HUM_RANGE = config.getint("THERMOSTAT", "humidity_range")
-    BUFFER_SIZE = config.getint("THERMOSTAT", "buffer_size")
+    BUFFER_DUR = config.getint("THERMOSTAT", "buffer_duration")
 
+    # server settings
     PORT = config.getint("SERVER", "port")
+    GRAPH_LOCATION = config.get("SERVER", "graph_location")
 
-    heater_gpio = config.getint("GPIO", "heater")
-    humidity_gpio = config.getint("GPIO", "humidifier")
-    dht22_gpio = config.getint("GPIO", "dht22")
+    HEATER_GPIO = config.getint("GPIO", "heater")
+    HUMIDITY_GPIO = config.getint("GPIO", "humidifier")
+    DHT_GPIO = config.getint("GPIO", "dht22")
 
-    HEATER = Heater(heater_gpio)
-    HUMIDIFIER = Humidifier(humidity_gpio)
-    DHT = TempSensor(dht22_gpio, buffer_size=BUFFER_SIZE)
+    HEATER = Heater(HEATER_GPIO)
+    HUMIDIFIER = Humidifier(HUMIDITY_GPIO)
+    DHT = TempSensor(DHT_GPIO, buffer_duration=BUFFER_DUR)
 
     def exit_handler(sig, frame):
         LOGGER.info("Exiting Session")
@@ -86,8 +95,12 @@ def main(config):
     SERVER = Server(DHT, HEATER, HUMIDIFIER, PORT)
     SERVER.start()
 
+    plot_points = []
+
     LOGGER.info("Starting main loop.")
     while not TERM.is_set():
+
+        s = time.time()
 
         update_log_file()
 
@@ -104,15 +117,24 @@ def main(config):
 
         LOGGER.debug(f"Buffer: {[str(r) for r in DHT.get_buffers()]}")
 
-        if not HEATER.is_on() and temp < DESIRED_TEMP-TEMP_RANGE:
+        # make sure plot_points only keeps data recorded within roughly the last GRAPH_DURATION minutes
+        if len(plot_points) >= (GRAPH_DURATION*60)/UPDATE_TIME:
+            plot_points.pop(0)
+        plot_points.append(reading)
+
+        save_graph("Graph", plot_points, GRAPH_LOCATION)
+
+        # run thermostat checks
+        if temp < DESIRED_TEMP-TEMP_RANGE:
             HEATER.on()
-        if HEATER.is_on() and temp > DESIRED_TEMP+TEMP_RANGE:
+        if temp > DESIRED_TEMP+TEMP_RANGE:
             HEATER.off()
 
         if hum < DESIRED_HUM-HUM_RANGE and not hum < 0 and not hum > 100:
             HUMIDIFIER.spray(15)
 
-        TERM.wait(60)
+        # wait UPDATE_TIME seconds, subtracting execution time of loop
+        TERM.wait(UPDATE_TIME-(time.time()-s))
 
     LOGGER.info("Exit successfull.")
 

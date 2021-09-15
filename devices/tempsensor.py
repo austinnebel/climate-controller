@@ -47,7 +47,7 @@ class Reading:
 
 class TempSensor(Thread):
 
-    def __init__(self, pin, use_fahrenheit = True, buffer_size = 10):
+    def __init__(self, pin, use_fahrenheit = True, buffer_duration = 30):
         """
         Continuously captures temperature and humidity data from DHT22. This class
         can be instantiated, and then run as a thread using its run() method.
@@ -55,7 +55,7 @@ class TempSensor(Thread):
         Args:
             pin (int): GPIO data pin for DHT sensor.
             use_fahrenheit (bool, optional): If True, uses fahrenheit units, else uses Celcius. Defaults to True.
-            buffer_size (int, optional): Max amount of readings to store in memory at a time. Defaults to 10.
+            buffer_duration (int, optional): How many seconds of history should be conatined in the reading buffer. Defaults to 30.
         """
         Thread.__init__(self)
         self.daemon = True
@@ -63,7 +63,7 @@ class TempSensor(Thread):
         self.pin = pin
         self.reading_buff = []
         self.use_fahrenheit = use_fahrenheit
-        self.buffer_size = buffer_size
+        self.buffer_duration = buffer_duration
 
         self.term = Event()
 
@@ -118,14 +118,17 @@ class TempSensor(Thread):
     @read.setter
     def read(self, reading : Reading):
         """
-        Adds a Reading object to the reading buffer. If the buffer is full,
-        removes first item before appending.
+        Adds a Reading object to the reading buffer. Removes all readings
+        that are older than self.buffer_duration seconds.
 
         Args:
             reading (Reading): Reading object captured from sensor.
         """
-        if len(self.reading_buff) >= self.buffer_size:
-            self.reading_buff.pop(0)
+        if reading.temp is None or reading.hum is None: return
+        if len(self.reading_buff) >= 0:
+            for r in self.reading_buff:
+                if (reading.time - r.time).total_seconds() > self.buffer_duration:
+                    self.reading_buff.remove(r)
         self.reading_buff.append(reading)
 
     def get_readings(self):
@@ -157,7 +160,7 @@ class TempSensor(Thread):
 
     def run(self):
         """
-        Continously reads from sensor every secondl.
+        Continously reads from sensor every second.
         Runs indefinitely until terminate() is called.
         """
         while not self.term.is_set():
@@ -165,7 +168,8 @@ class TempSensor(Thread):
                 self.read = self.get_data()
             except Exception as e:
                 LOGGER.error(f"Error reading from DHT22: {str(e)}")
-            self.term.wait(1)
+            # dht sensors need a minimum of 2 seconds between readings
+            self.term.wait(2)
 
     def terminate(self):
         """
