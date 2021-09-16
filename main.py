@@ -53,11 +53,12 @@ def main(config):
 
     LOGGER.debug("Starting service.")
 
+    # terminate event
     TERM = Event()
 
     # general settings
     UPDATE_TIME = config.getint("GENERAL", "update_time")
-    GRAPH_DURATION = config.getint("GENERAL", "graph_duration")
+    GRAPH_DURATION = config.getint("GENERAL", "graph_duration") * 60
 
     # thermostat settings
     DESIRED_TEMP = config.getint("THERMOSTAT", "desired_temp")
@@ -70,12 +71,14 @@ def main(config):
     PORT = config.getint("SERVER", "port")
     GRAPH_LOCATION = config.get("SERVER", "graph_location")
 
+    # gpio settings
     HEATER_GPIO = config.getint("GPIO", "heater")
     HUMIDITY_GPIO = config.getint("GPIO", "humidifier")
     DHT_GPIO = config.getint("GPIO", "dht22")
 
+    # initialize devices
     HEATER = Heater(HEATER_GPIO)
-    HUMIDIFIER = Humidifier(HUMIDITY_GPIO)
+    HUMIDIFIER = Humidifier(HUMIDITY_GPIO, GRAPH_DURATION)
     DHT = TempSensor(DHT_GPIO, buffer_duration=BUFFER_DUR)
 
     def exit_handler(sig, frame):
@@ -119,7 +122,7 @@ def main(config):
         LOGGER.debug(f"Buffer: {[str(r) for r in DHT.get_buffers()]}")
 
         # make sure plot_points only keeps data recorded within roughly the last GRAPH_DURATION minutes
-        if len(plot_points) >= (GRAPH_DURATION*60)/UPDATE_TIME:
+        if len(plot_points) >= GRAPH_DURATION/UPDATE_TIME:
             plot_points.pop(0)
         plot_points.append(reading)
 

@@ -43,7 +43,7 @@ class Reading:
         unit = "C"
         if self.use_fahrenheit:
             unit = "F"
-        return f"{self.temp}{unit} {self.hum}% {self.time.strftime('%H:%M:%S')}"
+        return f"{self.temp}°{unit} {self.hum}% {self.time.strftime('%H:%M:%S')}"
 
 class TempSensor(Thread):
 

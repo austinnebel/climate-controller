@@ -47,29 +47,22 @@ class Server(Thread):
         new_html = Server.HTML_DEFAULT
 
         # insert current thermostat info
-        therm_info = str(Server.DHT.avg).rsplit(" ", 1)
-        therm_info, therm_time = (therm_info[0], therm_info[1])
-        new_html = Server.insert(str(new_html), "content", "h1", text = therm_info, options = {"class": "infoheader"})
+        therm_info = str(Server.DHT.avg).split()
+        temp, hum, therm_time = (therm_info[0], therm_info[1], therm_info[2])
+        new_html = Server.insert(str(new_html), "content", "h1", text = f"{temp}\n{hum}", options = {"class": "infoheader"})
         new_html = Server.insert(str(new_html), "content", "h1", text = therm_time, options = {"class": "infosubheader"})
 
         # insert stats header
         new_html = Server.insert(str(new_html), "content", "h1", text = "Statistics", options = {"class": "contentheader"})
 
         # insert graphs
-        temp_graph_bytes = base64.b64encode(open("server/files/temps.png", 'rb').read()).decode('utf-8')
-        hum_graph_bytes = base64.b64encode(open("server/files/hum.png", 'rb').read()).decode('utf-8')
-        temp_graph = {
+        temp_graph_bytes = base64.b64encode(open("server/files/graphs.png", 'rb').read()).decode('utf-8')
+        graphs = {
             "class": "graph",
             "src": f"data:image/png;base64,{temp_graph_bytes}",
-            "alt": "Temperatures unavailable.",
+            "alt": "Graph data unavailable.",
         }
-        hum_graph = {
-            "class": "graph",
-            "src": f"data:image/png;base64,{hum_graph_bytes}",
-            "alt": "Humidity data unavailable.",
-        }
-        new_html = Server.insert(str(new_html), "content", "image", options = temp_graph)
-        new_html = Server.insert(str(new_html), "content", "image", options = hum_graph)
+        new_html = Server.insert(str(new_html), "content", "image", options = graphs)
 
         # insert stats
         current_stats = Server.DHT.get_buffers()

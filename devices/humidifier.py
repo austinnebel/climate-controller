@@ -8,16 +8,26 @@ LOGGER = logging.getLogger()
 
 class Humidifier:
 
-    def __init__(self, pin):
+    def __init__(self, pin, graph_duration):
+        """
+        Class to control humidifer device.
+
+        Args:
+            pin (int): GPIO pin used to activate humidifier.
+            graph_duration (int): Amount of time that the entries in spray_times should span.
+        """
         self.relay = Relay(pin)
+        self.graph_duration = graph_duration
         self.spray_times = []
 
     def add_spray(self):
+        """
+        Adds a time entry to self.spray_times.
+        """
         now = dt.now()
-        if len(self.spray_times) >= 0:
-            for t in self.spray_times:
-                if (now-t).total_seconds() > 120*60:
-                    self.spray_times.remove(t)
+        for t in self.spray_times:
+            if (now-t).total_seconds() > self.graph_duration:
+                self.spray_times.remove(t)
         self.spray_times.append(now)
 
     def last_spray(self):
@@ -27,7 +37,7 @@ class Humidifier:
         Returns:
             datetime: Last spray time.
         """
-        if len(self.spray_times) >= 0:
+        if len(self.spray_times) > 0:
             return self.spray_times[-1]
 
     def is_on(self):
