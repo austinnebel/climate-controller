@@ -51,7 +51,7 @@ def plot_humidity(axes, hum_times, hums, activation_times):
     # plots vertical line at each activation time
     LOGGER.debug(f"Plotting {len(activation_times)} humidifier activation times: {activation_times}")
     for t in activation_times:
-        axes.axvline(t, color = "o")
+        axes.axvline(t, color = "orange")
 
     axes.set_ylim((70, 100))
     axes.set_title("Humidity")
