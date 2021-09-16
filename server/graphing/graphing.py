@@ -33,7 +33,7 @@ def plot_temps(axes, temp_times, temps):
     """
     axes.plot_date(temp_times, temps, linestyle='solid', fmt=".")
     axes.set_ylim((70, 90))
-    axes.set_title("Temperature")
+    axes.set_title("Temperature", fontsize=20)
     axes.grid()
 
 def plot_humidity(axes, hum_times, hums, activation_times):
@@ -54,7 +54,7 @@ def plot_humidity(axes, hum_times, hums, activation_times):
         axes.axvline(t, color = "orange")
 
     axes.set_ylim((70, 100))
-    axes.set_title("Humidity")
+    axes.set_title("Humidity", fontsize=20)
     axes.grid()
 
 def generate_graphs(readings, humidifier_times, location):
