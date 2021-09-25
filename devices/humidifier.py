@@ -16,19 +16,38 @@ class Humidifier:
             pin (int): GPIO pin used to activate humidifier.
             graph_duration (int): Amount of time that the entries in spray_times should span.
         """
-        self.relay = Relay(pin)
+        # humidifier should default to off
+        self.relay = Relay(pin, normally_closed = False)
         self.graph_duration = graph_duration
         self.spray_times = []
+
+    def clean_spray_times(self):
+        """
+        Removes all spray times that are older than self.graph_duration seconds.
+        """
+        if len(self.spray_times) > 0:
+            now = dt.now()
+            for t in self.spray_times:
+                if (now - t).total_seconds() > self.graph_duration:
+                    self.spray_times.remove(t)
+
+    def get_spray_times(self):
+        """
+        Returns list of spray times.
+
+        Returns:
+            list[datetime]: List of datetime objects.
+        """
+        self.clean_spray_times()
+        return self.spray_times
 
     def add_spray(self):
         """
         Adds a time entry to self.spray_times.
         """
         now = dt.now()
-        for t in self.spray_times:
-            if (now-t).total_seconds() > self.graph_duration:
-                self.spray_times.remove(t)
         self.spray_times.append(now)
+        self.clean_spray_times()
 
     def last_spray(self):
         """
