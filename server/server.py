@@ -1,9 +1,9 @@
 import base64
-import http.server
 import logging
 import socketserver
-from threading import Thread
 from http.server import SimpleHTTPRequestHandler
+from socketserver import ThreadingMixIn, TCPServer
+from threading import Thread
 import time
 
 from bs4 import BeautifulSoup as Soup
@@ -21,6 +21,15 @@ class Server(Thread):
     HTML_DEFAULT = None
 
     def __init__(self, dht, heater, humidifier, port):
+        """
+        Serves HTTP request to clients consisting of thermostat data and statistics.
+
+        Args:
+            dht (devices.TempSensor): TempSensor object.
+            heater (devices.Heater): Heater object.
+            humidifier (devices.Humidifier): Humiditiy object.
+            port (int): Port to serve requests on.
+        """
         Thread.__init__(self)
         self.daemon = True
         Server.DHT = dht
@@ -44,6 +53,9 @@ class Server(Thread):
 
     @staticmethod
     def generate_page():
+        """
+        Generates an HTML page and saves it to this class.
+        """
         new_html = Server.HTML_DEFAULT
 
         # insert current thermostat info
@@ -65,15 +77,15 @@ class Server(Thread):
         new_html = Server.insert(str(new_html), "content", "image", options = graphs)
 
         # insert stats
-        current_stats = Server.DHT.get_buffers()
-        for stats in current_stats:
-            new_html = Server.insert(str(new_html), "content", "p", text = stats)
+        #current_stats = Server.DHT.get_buffers()
+        #for stats in current_stats:
+        #    new_html = Server.insert(str(new_html), "content", "p", text = stats)
 
         Server.HTML = str(new_html)
 
     def insert(html, parent, tag, text = None, options = None):
         """
-        Inserts an HTML tag into the document.
+        Inserts an HTML tag into the provided HTML.
 
         Args:
             html (str): HTML string to parse and insert into.
@@ -103,13 +115,20 @@ class Server(Thread):
         """
         # prevents port collisions
         socketserver.TCPServer.allow_reuse_address = True
-
-        server = socketserver.TCPServer(("", Server.PORT), self.Handler)
+        #sets connection threads to daemon mode
+        ThreadingMixIn.daemon_threads = True
+        server = Server.ThreadedTCPServer(("", Server.PORT), self.Handler)
 
         LOGGER.info(f"Serving at port {Server.PORT}")
         server.serve_forever(poll_interval=0.25)
 
-    class Handler(http.server.SimpleHTTPRequestHandler):
+    class ThreadedTCPServer(ThreadingMixIn, TCPServer):
+        """
+        Uses ThreadingMixIn to overide TCPServer methods to implement multithreading.
+        """
+        pass
+
+    class Handler(SimpleHTTPRequestHandler):
         """
         Handles all incoming requests. Uses outer Server class to generate response.
         """
@@ -119,7 +138,7 @@ class Server(Thread):
             LOGGER.debug(f"HTML generated in {time.time() - s} seconds.")
             self.send_response(200)
             self.send_header("Content-type", "text/html")
-            self.send_header("Content-length", str(len(Server.HTML)))
+            self.send_header("Content-length", len(str(Server.HTML)))
             self.end_headers()
 
             self.wfile.write(bytes(Server.HTML, "utf-8"))

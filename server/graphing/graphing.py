@@ -9,19 +9,6 @@ logging.getLogger("matplotlib").setLevel(logging.ERROR)
 LOGGER = logging.getLogger()
 
 
-def close(fig):
-    """
-    Clears the provided figure, then closes.
-
-    Args:
-        fig (matplotlib.figure): Figure to close.
-    """
-    fig.clf()
-    fig.clear()
-    plt.cla()
-    plt.clf()
-    plt.close(fig)
-
 def plot_temps(axes, temp_times, temps):
     """
     Plots a graph of temperature data.
@@ -74,7 +61,10 @@ def generate_graphs(readings, humidifier_times, location):
     for r in readings:
         temps.append(r.temp)
         hums.append(r.hum)
+
         times.append(r.time)
+
+    LOGGER.debug(f"Generating graphs for {len(temps)} temperatures, {len(hums)} humidities, and {len(times)} timestamps.")
 
     # create a single plotting figure of size 6x11, add 2 subplots at position 1 and 2 with 1 column & 2 rows
     fig = plt.figure(num=100, clear=True, figsize=(6, 10))
