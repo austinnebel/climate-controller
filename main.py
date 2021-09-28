@@ -7,6 +7,7 @@ from threading import Event
 import time
 import traceback
 from devices import TempSensor, RelayDevice
+from utils import RotatingTimeList
 from server import Server, generate_graphs
 
 
@@ -125,7 +126,7 @@ def main(config):
             LOGGER.error("ERROR: Can't read sensor.")
             continue
         else:
-            LOGGER.info(f"{reading}   -   Heater: {HEATER.is_on()}   -   Humidifier: {HUMIDIFIER.last_spray()}")
+            LOGGER.info(f"{reading}   -   Heater: {HEATER.is_on()}   -   Lamp: {LAMP.is_on()}")
 
         LOGGER.debug(f"Buffer: {[str(r) for r in DHT.get_buffers()]}")
 
@@ -135,19 +136,12 @@ def main(config):
         plot_points.append(reading)
 
         # generate new graphs, and updated HTML page
-        generate_graphs(plot_points, HUMIDIFIER.get_spray_times(), GRAPH_LOCATION)
+        generate_graphs(plot_points, HEATER, LAMP, HUMIDIFIER, GRAPH_LOCATION)
 
-
-        current_hour = datetime.datetime.now().hour
 
         # run thermostat checks
+        current_hour = datetime.datetime.now().hour
         is_daytime = current_hour > DAY_START and current_hour < DAY_END
-        print(temp)
-        print(DESIRED_TEMP)
-        print(TEMP_RANGE)
-        print(temp < DESIRED_TEMP-TEMP_RANGE)
-        print(is_daytime)
-        print(current_hour)
         if temp < DESIRED_TEMP-TEMP_RANGE:
             # only use heat lamp during daytime hours. If not daytime, use heat pad
             if is_daytime:

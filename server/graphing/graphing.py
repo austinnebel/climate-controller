@@ -9,7 +9,7 @@ logging.getLogger("matplotlib").setLevel(logging.ERROR)
 LOGGER = logging.getLogger()
 
 
-def plot_temps(axes, temp_times, temps):
+def plot_temps(axes, temp_times, temps, heatmat, lamp):
     """
     Plots a graph of temperature data.
 
@@ -17,8 +17,20 @@ def plot_temps(axes, temp_times, temps):
         axes (matplotlib.axes): Subplot to graph on.
         temp_times (list[datetime]): Times that correspond to each humidity value (x-axis)
         temps (float): Temperature values (y-axis)
+        heatmat (RelayDevice): RelayDevice object that controls the heat mat.
+        lamp (RelayDevice): RelayDevice object that controls the heat lamp.
     """
     axes.plot_date(temp_times, temps, linestyle='solid', fmt=".")
+
+    for t in heatmat.activations:
+        axes.axvline(t, color = "orange")
+    for t in heatmat.deactivations:
+        axes.axvline(t, color = "blue")
+    for t in lamp.activations:
+        axes.axvline(t, color = "red")
+    for t in lamp.deactivations:
+        axes.axvline(t, color = "purple")
+
     axes.set_ylim((70, 90))
     axes.set_title("Temperature", fontsize=20)
     axes.grid()
@@ -36,7 +48,6 @@ def plot_humidity(axes, hum_times, hums, activation_times):
     axes.plot_date(hum_times, hums, linestyle='solid', fmt=".")
 
     # plots vertical line at each activation time
-    LOGGER.debug(f"Plotting {len(activation_times)} humidifier activation times: {activation_times}")
     for t in activation_times:
         axes.axvline(t, color = "orange")
 
@@ -44,27 +55,27 @@ def plot_humidity(axes, hum_times, hums, activation_times):
     axes.set_title("Humidity", fontsize=20)
     axes.grid()
 
-def generate_graphs(readings, humidifier_times, location):
+def generate_graphs(readings, heatmat, lamp, humidifier, location):
     """
     Generates and saves graphs for temperature and humidity to .png files.
 
     Args:
         readings (list[Reading]): List of Reading objects to get data from.
-        humidifier_times (list[datetime]): List of times that the humidifier was activated.
+        heatmat (RelayDevice): RelayDevice object that controls the heat mat.
+        lamp (RelayDevice): RelayDevice object that controls the heat lamp.
+        humidifier (RelayDevice): RelayDevice object that controls the humidifier.
         location (str): Location to save .png files to.
 
     Ref: https://medium.com/@kapil.mathur1987/matplotlib-an-introduction-to-its-object-oriented-interface-a318b1530aed
     """
     s = time.time()
 
+    # add provided past readings to separated lists
     temps, hums, times = ([], [], [])
     for r in readings:
         temps.append(r.temp)
         hums.append(r.hum)
-
         times.append(r.time)
-
-    LOGGER.debug(f"Generating graphs for {len(temps)} temperatures, {len(hums)} humidities, and {len(times)} timestamps.")
 
     # create a single plotting figure of size 6x11, add 2 subplots at position 1 and 2 with 1 column & 2 rows
     fig = plt.figure(num=100, clear=True, figsize=(6, 10))
@@ -81,12 +92,10 @@ def generate_graphs(readings, humidifier_times, location):
     hum_graph.yaxis.set_major_formatter("{x}%")
 
 
-    plot_temps(temp_graph, times, temps)
-    plot_humidity(hum_graph, times, hums, humidifier_times)
+    plot_temps(temp_graph, times, temps, heatmat, lamp)
+    plot_humidity(hum_graph, times, hums, humidifier.activations)
 
-    #temp_graph.set_yticklabels([f"{x}°F" for x in temp_graph.get_yticks()])
-    #hum_graph.set_yticklabels([f"{x}%" for x in hum_graph.get_yticks()])
-
+    # save figure to png file, clear figure to save memory
     fig.savefig(join(location, "graphs.png"))
     fig.clear()
 
