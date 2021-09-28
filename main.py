@@ -6,7 +6,7 @@ import sys
 from threading import Event
 import time
 import traceback
-from devices import TempSensor, Heater, Humidifier
+from devices import TempSensor, RelayDevice
 from server import Server, generate_graphs
 
 
@@ -83,9 +83,9 @@ def main(config):
     DHT_GPIO = config.getint("GPIO", "dht22")
 
     # initialize devices
-    HEATER = Heater(HEATER_GPIO, name = "Heating Pad", normally_closed = True)
-    LAMP = Heater(LAMP_GPIO, name = "Lamp", normally_closed = False)
-    HUMIDIFIER = Humidifier(HUMIDITY_GPIO, GRAPH_DURATION)
+    HEATER = RelayDevice(HEATER_GPIO, GRAPH_DURATION, name = "Heating Pad", normally_closed = True)
+    LAMP = RelayDevice(LAMP_GPIO, GRAPH_DURATION, name = "Lamp", normally_closed = False)
+    HUMIDIFIER = RelayDevice(HUMIDITY_GPIO, GRAPH_DURATION, name = "Humidifier", normally_closed = False)
     DHT = TempSensor(DHT_GPIO, buffer_duration=BUFFER_DUR)
 
     def exit_handler(sig, frame):
@@ -160,7 +160,7 @@ def main(config):
             LAMP.off()
 
         if hum < DESIRED_HUM-HUM_RANGE and not hum < 0 and not hum > 100:
-            HUMIDIFIER.spray(SPRAY_DUR)
+            HUMIDIFIER.on_timed(SPRAY_DUR)
 
         # wait UPDATE_TIME seconds, subtracting execution time of loop
         TERM.wait(UPDATE_TIME-(time.time()-s))
