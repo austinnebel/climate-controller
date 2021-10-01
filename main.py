@@ -49,119 +49,166 @@ log_stdout_handler.setFormatter(LOG_FORMATTER)
 log_stdout_handler.setLevel(logging.DEBUG)
 LOGGER.addHandler(log_stdout_handler)
 
+class Service:
 
-def main(config):
+    def __init__(self, config_file):
+        self.config_file = config_file
+        self.load_config()
 
-    LOGGER.debug("Starting service.")
+        LOGGER.debug("Starting service.")
 
-    # terminate event
-    TERM = Event()
+        # terminate event
+        self.term = Event()
 
-    # general settings
-    UPDATE_TIME = config.getint("GENERAL", "update_time")
-    GRAPH_DURATION = config.getint("GENERAL", "graph_duration") * 60
+        signal.signal(signal.SIGINT, self.exit_handler)
+        signal.signal(signal.SIGTERM, self.exit_handler)
 
-    # thermostat settings
-    DESIRED_TEMP = config.getint("THERMOSTAT", "desired_temp")
-    DESIRED_HUM = config.getint("THERMOSTAT", "desired_humidity")
-    TEMP_RANGE = config.getint("THERMOSTAT", "temp_range")
-    HUM_RANGE = config.getint("THERMOSTAT", "humidity_range")
-    BUFFER_DUR = config.getint("THERMOSTAT", "buffer_duration")
-    SPRAY_DUR = config.getint("THERMOSTAT", "spray_duration")
+        self.plot_points = RotatingTimeList(self.graph_duration)
 
-    # schedule settings
-    DAY_START = config.getint("SCHEDULE", "day_start")
-    DAY_END = config.getint("SCHEDULE", "day_end")
+        self.init_devices()
 
-    # server settings
-    PORT = config.getint("SERVER", "port")
-    GRAPH_LOCATION = config.get("SERVER", "graph_location")
-
-    # gpio settings
-    HEATER_GPIO = config.getint("GPIO", "heater")
-    HUMIDITY_GPIO = config.getint("GPIO", "humidifier")
-    LAMP_GPIO = config.getint("GPIO", "lamp")
-    DHT_GPIO = config.getint("GPIO", "dht22")
-
-    # initialize devices
-    HEATER = RelayDevice(HEATER_GPIO, GRAPH_DURATION, name = "Heating Pad", normally_closed = True)
-    LAMP = RelayDevice(LAMP_GPIO, GRAPH_DURATION, name = "Lamp", normally_closed = False)
-    HUMIDIFIER = RelayDevice(HUMIDITY_GPIO, GRAPH_DURATION, name = "Humidifier", normally_closed = False)
-    DHT = TempSensor(DHT_GPIO, buffer_duration=BUFFER_DUR)
-
-    def exit_handler(sig, frame):
+    def exit_handler(self, sig, frame):
         LOGGER.info("Exiting Session")
-        if HEATER: HEATER.on()
-        if HUMIDIFIER: HUMIDIFIER.off()
-        if LAMP: LAMP.off()
-        if DHT: DHT.terminate()
-        TERM.set()
-    signal.signal(signal.SIGINT, exit_handler)
-    signal.signal(signal.SIGTERM, exit_handler)
+        if self.heater: self.heater.on()
+        if self.humidifier: self.humidifier.off()
+        if self.lamp: self.lamp.off()
+        if self.dht: self.dht.terminate()
+        self.term.set()
 
-    DHT.start()
+    def load_config(self):
+        config = configparser.ConfigParser()
+        config.read(self.config_file)
 
-    LOGGER.info("Waiting for DHT readings..")
-    while not DHT.get_readings() and not TERM.is_set():
-        TERM.wait(0.1)
+        # general settings
+        self.update_time = config.getint("GENERAL", "update_time")
+        self.graph_duration = config.getint("GENERAL", "graph_duration") * 60
 
-    SERVER = Server(DHT, HEATER, HUMIDIFIER, PORT)
-    SERVER.start()
+        # thermostat settings
+        self.desired_temp = config.getint("THERMOSTAT", "desired_temp")
+        self.desired_hum = config.getint("THERMOSTAT", "desired_humidity")
+        self.temp_range = config.getint("THERMOSTAT", "temp_range")
+        self.hum_range = config.getint("THERMOSTAT", "humidity_range")
+        self.buffer_dur = config.getint("THERMOSTAT", "buffer_duration")
+        self.spray_dur = config.getint("THERMOSTAT", "spray_duration")
 
-    plot_points = []
+        # schedule settings
+        self.day_start = config.getint("SCHEDULE", "day_start")
+        self.day_end = config.getint("SCHEDULE", "day_end")
 
-    LOGGER.info("Starting main loop.")
-    while not TERM.is_set():
+        # server settings
+        self.server_port = config.getint("SERVER", "port")
+        self.graph_location = config.get("SERVER", "graph_location")
 
-        s = time.time()
+        # gpio settings
+        self.heater_gpio = config.getint("GPIO", "heater")
+        self.humidifier_gpio = config.getint("GPIO", "humidifier")
+        self.lamp_gpio = config.getint("GPIO", "lamp")
+        self.dht_gpio = config.getint("GPIO", "dht22")
 
-        update_log_file()
+    def init_devices(self):
+        # initialize devices
+        self.heater = RelayDevice(self.heater_gpio, self.graph_duration, name = "Heating Pad", normally_closed = True)
+        self.lamp = RelayDevice(self.lamp_gpio, self.graph_duration, name = "Lamp", normally_closed = False)
+        self.humidifier = RelayDevice(self.humidifier_gpio, self.graph_duration, name = "Humidifier", normally_closed = False)
+        self.dht = TempSensor(self.dht_gpio, buffer_duration=self.buffer_dur)
 
-        # get moving average of temp and humidity
-        reading = DHT.avg
+    def begin_reading(self):
+        """
+        Starts a thread to start reading data from the DHT sensor.
+
+        NOTE: Is blocking if the sensor is unresponsive.
+        """
+        self.dht.start()
+
+        LOGGER.info("Waiting for self.dht readings..")
+        while not self.dht.get_readings() and not self.term.is_set():
+            self.term.wait(0.1)
+
+    def get_reading(self):
+        """
+        Returns the average temperature and humidity from the DHT.
+
+        Returns:
+            tuple: Tuple of data, in the form (temp, humidity)
+        """
+        reading = self.dht.avg
+        return reading.temp, reading.hum
+
+    def start_html_server(self):
+        """
+        Starts the HTML server.
+        """
+        self.server = Server(self.dht, self.heater, self.humidifier, self.server_port)
+        self.server.start()
+
+    def start(self):
+        """
+        Starts the main service thread.
+        """
+        self.begin_reading()
+        self.start_html_server()
+
+        LOGGER.info("Starting main loop.")
+        while not self.term.is_set():
+            s = time.time()
+
+            update_log_file()
+
+            reading = self.dht.avg
+            temp, hum = (reading.temp, reading.hum)
+            if temp is None or hum is None:
+                LOGGER.error("ERROR: Failed to read sensor.")
+                continue
+
+            self.plot_points.append(reading)
+
+            LOGGER.info(f"{reading}   -   Heater: {self.heater.is_on()}   -   Lamp: {self.lamp.is_on()}")
+            LOGGER.debug(f"Buffer: {[str(r) for r in self.dht.get_buffers()]}")
+
+            self.update_devices(reading)
+            self.graph_data(self.plot_points.all())
+
+            # wait self.update_time seconds, subtracting execution time of loop
+            self.term.wait(self.update_time-(time.time()-s))
+
+        LOGGER.info("Exited main loop.")
+
+    def graph_data(self, data_points):
+        """
+        Graphs climate data to a png file.
+
+        Args:
+            data_points (list): List of Reading objects to plot in a graph.
+        """
+        generate_graphs(data_points, self.heater, self.lamp, self.humidifier, self.graph_location)
+
+    def update_devices(self, reading):
+        """
+        Updates power state of heating and humidity devices.
+
+        Args:
+            reading (Reading): Reading object to get environment data from.
+        """
         temp = reading.temp
         hum = reading.hum
 
-        if temp is None or hum is None:
-            LOGGER.error("ERROR: Can't read sensor.")
-            continue
-        else:
-            LOGGER.info(f"{reading}   -   Heater: {HEATER.is_on()}   -   Lamp: {LAMP.is_on()}")
-
-        LOGGER.debug(f"Buffer: {[str(r) for r in DHT.get_buffers()]}")
-
-        # make sure plot_points only keeps data recorded within roughly the last GRAPH_DURATION minutes
-        if len(plot_points) >= GRAPH_DURATION/UPDATE_TIME:
-            plot_points.pop(0)
-        plot_points.append(reading)
-
-        # generate new graphs, and updated HTML page
-        generate_graphs(plot_points, HEATER, LAMP, HUMIDIFIER, GRAPH_LOCATION)
-
-
         # run thermostat checks
         current_hour = datetime.datetime.now().hour
-        is_daytime = current_hour > DAY_START and current_hour < DAY_END
-        if temp < DESIRED_TEMP-TEMP_RANGE:
-            # only use heat lamp during daytime hours. If not daytime, use heat pad
+        is_daytime = current_hour > self.day_start and current_hour < self.day_end
+
+        if temp < self.desired_temp-self.temp_range:
             if is_daytime:
-                LAMP.on()
+                self.lamp.on()
             else:
-                LAMP.off()
-                HEATER.on()
-        if temp > DESIRED_TEMP+TEMP_RANGE:
-            HEATER.off()
-            LAMP.off()
+                self.lamp.off()
+                self.heater.on()
+        if temp > self.desired_temp+self.temp_range:
+            self.heater.off()
+            self.lamp.off()
 
-        if hum < DESIRED_HUM-HUM_RANGE and not hum < 0 and not hum > 100:
-            HUMIDIFIER.on_timed(SPRAY_DUR)
-
-        # wait UPDATE_TIME seconds, subtracting execution time of loop
-        TERM.wait(UPDATE_TIME-(time.time()-s))
-
-    LOGGER.info("Exited main loop.")
+        if hum < self.desired_hum-self.hum_range and not hum < 0 and not hum > 100:
+            self.humidifier.on_timed(self.spray_dur)
 
 if __name__ == "__main__":
-    config = configparser.ConfigParser()
-    config.read("config.ini")
-    main(config)
+    service = Service("config.ini")
+    service.start()

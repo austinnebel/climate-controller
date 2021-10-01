@@ -1,3 +1,4 @@
+from devices.tempsensor import Reading
 import logging
 from datetime import datetime as dt
 
@@ -7,9 +8,10 @@ class RotatingTimeList:
 
     def __init__(self, duration):
         """
-        This class holds a list containing datetime entries, with each entry being
-        within the last [duration] seconds. If an entry is older than [duration] seconds,
-        it will not be returned.
+        This class holds a list containing time entries, with each entry being either a datetime
+        object or a Reading object. If an entry is older than [duration] seconds, it is removed automatically.
+        Therefore all entries in the list stay within the last [duration] seconds.
+
 
         Args:
             duration (int): Amount of time that the entries should span, in seconds.
@@ -24,7 +26,8 @@ class RotatingTimeList:
         if len(self.list) > 0:
             now = dt.now()
             for t in self.list:
-                if (now - t).total_seconds() > self.duration:
+                entry_time = t.time if isinstance(t, Reading) else t
+                if (now - entry_time).total_seconds() > self.duration:
                     self.list.remove(t)
         return self.list
 
@@ -42,7 +45,7 @@ class RotatingTimeList:
         Adds a time entry to self.list, then cleans old entries.
 
         Args:
-            time_entry (datetime.datetime): Optional. If present, appends it to self.list instead of datetime.now().
+            time_entry (Datetime, Reading): Optional. If not present, creates and appends a new datetime object.
         """
         entry = dt.now() if time_entry is None else time_entry
         self.list.append(entry)
