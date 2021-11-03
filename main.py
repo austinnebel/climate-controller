@@ -124,16 +124,6 @@ class Service:
         while not self.dht.available() and not self.term.is_set():
             self.term.wait(0.1)
 
-    def get_reading(self):
-        """
-        Returns the average temperature and humidity from the DHT.
-
-        Returns:
-            tuple: Tuple of data, in the form (temp, humidity)
-        """
-        reading = self.dht.avg
-        return reading.temp, reading.hum
-
     def start_html_server(self):
         """
         Starts the HTML server.
@@ -187,6 +177,9 @@ class Service:
         """
         Updates power state of heating and humidity devices.
 
+        During daytime hours the lamp is prioritized as a heating device.
+        At night, only the heat mat is used.
+
         Args:
             reading (Reading): Reading object to get environment data from.
         """
@@ -197,15 +190,32 @@ class Service:
         current_hour = datetime.datetime.now().hour
         is_daytime = current_hour > self.day_start and current_hour < self.day_end
 
+        # forces lamp to be off at night
+        if not is_daytime:
+            self.lamp.off()
+
         if temp < self.desired_temp-self.temp_range:
             if is_daytime:
-                self.lamp.on()
+                # if the lamp is not on, turn it on first.
+                # If its still too cold on next check, turn on heater
+                if not self.lamp.is_on():
+                    self.lamp.on()
+                else:
+                    self.heater.on()
             else:
-                self.lamp.off()
                 self.heater.on()
+
         if temp > self.desired_temp+self.temp_range:
-            self.heater.off()
-            self.lamp.off()
+            if is_daytime:
+                # if the heater is on, turn it off first.
+                # If its still too hot on next check, turn off lamp
+                if self.heater.is_on():
+                    self.heater.off()
+                else:
+                    self.lamp.off()
+            else:
+                self.heater.off()
+
 
         if hum < self.desired_hum-self.hum_range and not hum < 0 and not hum > 100:
             self.humidifier.on_timed(self.spray_dur)
