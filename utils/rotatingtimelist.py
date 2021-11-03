@@ -67,5 +67,8 @@ class RotatingTimeList:
             return self.list[0]
         return None
 
+    def __len__(self):
+        return len(self.all())
+
     def __iter__(self):
         return iter(self.all())
