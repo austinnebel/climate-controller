@@ -1,6 +1,7 @@
-from devices.tempsensor import Reading
 import logging
 from datetime import datetime as dt
+
+from devices import Reading
 
 LOGGER = logging.getLogger()
 
