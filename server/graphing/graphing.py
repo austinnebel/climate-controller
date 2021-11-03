@@ -37,7 +37,7 @@ def plot_temps(axes, temp_times, temps, heatmat, lamp):
 
 def plot_humidity(axes, hum_times, hums, activation_times):
     """
-    Plots a graph of humidity data, including humidifer activation times.
+    Plots a graph of humidity data, including humidifier activation times.
 
     Args:
         axes (matplotlib.axes): Subplot to graph on.
@@ -51,7 +51,7 @@ def plot_humidity(axes, hum_times, hums, activation_times):
     for t in activation_times:
         axes.axvline(t, color = "orange")
 
-    axes.set_ylim((70, 100))
+    axes.set_ylim((60, 100))
     axes.set_title("Humidity", fontsize=20)
     axes.grid()
 
