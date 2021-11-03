@@ -11,6 +11,8 @@ plotly = "*"
 matplotlib = "*"
 numpy = "*"
 django = "*"
+djangorestframework = "*"
+django-cors-headers = "*"
 
 [dev-packages]
 
