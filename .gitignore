@@ -1,2 +1,5 @@
 *.png
 *.log
+*/.venv
+.venv
+install/

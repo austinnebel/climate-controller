@@ -4,12 +4,13 @@ verify_ssl = true
 name = "pypi"
 
 [packages]
-"RPi.GPIO" = "*"
-Adafruit-DHT = "*"
+"RPi.GPIO" = {version = "*", sys_platform = "=='linux2'"}
+Adafruit-DHT = {version = "*", sys_platform = "=='linux2'"}
 beautifulsoup4 = "*"
 plotly = "*"
 matplotlib = "*"
 numpy = "*"
+django = "*"
 
 [dev-packages]
 
