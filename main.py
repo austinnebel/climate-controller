@@ -121,7 +121,7 @@ class Service:
         self.dht.start()
 
         LOGGER.info("Waiting for self.dht readings..")
-        while not self.dht.get_readings() and not self.term.is_set():
+        while not self.dht.available() and not self.term.is_set():
             self.term.wait(0.1)
 
     def get_reading(self):
@@ -154,7 +154,7 @@ class Service:
 
             update_log_file()
 
-            reading = self.dht.avg
+            reading = self.dht.get_avg()
             temp, hum = (reading.temp, reading.hum)
             if temp is None or hum is None:
                 LOGGER.error("ERROR: Failed to read sensor.")
@@ -163,7 +163,8 @@ class Service:
             self.plot_points.append(reading)
 
             LOGGER.info(f"{reading}   -   Heater: {self.heater.is_on()}   -   Lamp: {self.lamp.is_on()}")
-            LOGGER.debug(f"Buffer: {[str(r) for r in self.dht.get_buffers()]}")
+            LOGGER.debug(f"DHT Reading Buffer: {[str(r) for r in self.dht.get_buffer()]}")
+            LOGGER.debug(f"Graph Point Buffer: {[str(r) for r in self.plot_points.all()]}")
 
             self.update_devices(reading)
             self.graph_data(self.plot_points.all())

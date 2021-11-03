@@ -59,7 +59,7 @@ class Server(Thread):
         new_html = Server.HTML_DEFAULT
 
         # insert current thermostat info
-        therm_info = str(Server.DHT.avg).split()
+        therm_info = str(Server.DHT.get_avg()).split()
         temp, hum, therm_time = (therm_info[0], therm_info[1], therm_info[2])
         new_html = Server.insert(str(new_html), "content", "h1", text = f"{temp}\n{hum}", options = {"class": "infoheader"})
         new_html = Server.insert(str(new_html), "content", "h1", text = therm_time, options = {"class": "infosubheader"})

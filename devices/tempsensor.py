@@ -1,8 +1,10 @@
-from threading import Thread, Event
 import logging
 import time
 import datetime
 import Adafruit_DHT
+
+
+from threading import Thread, Event
 
 LOGGER = logging.getLogger()
 
@@ -17,10 +19,10 @@ class Reading:
             temp (float): Temperature.
             hum (float): Humidity percentage.
             time (datetime): If present, will set this objects timestamp.
-            convert (bool): If True, will convert temp from Celcius to Fahrenheit.
+            convert (bool): If True, will convert temp from Celsius to Fahrenheit.
             repr_fahrenheit (bool, optional): If True and convert is False, assumes that temp is already in Fahrenheit units.
                                               If True and convert is True, temp will be converted to Fahrenheit units.
-                                              If False, temp will remain in Celcius.
+                                              If False, temp will remain in Celsius.
         """
         self.repr_fahrenheit = repr_fahrenheit
 
@@ -42,6 +44,7 @@ class Reading:
         unit = "F" if self.repr_fahrenheit else "C"
         return f"{self.temp}°{unit} {self.hum}% {self.time.strftime('%H:%M:%S')}"
 
+
 class TempSensor(Thread):
 
     def __init__(self, pin, use_fahrenheit = True, buffer_duration = 30):
@@ -51,21 +54,25 @@ class TempSensor(Thread):
 
         Args:
             pin (int): GPIO data pin for DHT sensor.
-            use_fahrenheit (bool, optional): If True, uses fahrenheit units, else uses Celcius. Defaults to True.
-            buffer_duration (int, optional): How many seconds of history should be conatined in the reading buffer. Defaults to 30.
+            use_fahrenheit (bool, optional): If True, uses fahrenheit units, else uses Celsius. Defaults to True.
+            buffer_duration (int, optional): How many seconds of history should be contained in the reading buffer. Defaults to 30.
         """
         Thread.__init__(self)
+        from utils import RotatingTimeList
+
         self.daemon = True
         self.sensor = Adafruit_DHT.DHT22
         self.pin = pin
-        self.reading_buff = []
+        self.reading_buff = RotatingTimeList(buffer_duration)
         self.use_fahrenheit = use_fahrenheit
         self.buffer_duration = buffer_duration
 
         self.term = Event()
 
-    @property
-    def avg(self):
+    def available(self):
+        return len(self.reading_buff.all()) > 0
+
+    def get_avg(self):
         """
         Returns a `Reading` object containing the average values of all Readings stored in the buffer.
         The returned time value will be the time value stored in the most recent reading.
@@ -77,49 +84,23 @@ class TempSensor(Thread):
             t_avg = sum([r.temp for r in self.reading_buff])/len(self.reading_buff)
             h_avg = sum([r.hum for r in self.reading_buff])/len(self.reading_buff)
 
-            return Reading(t_avg, h_avg, time = self.reading_buff[-1].time, convert = False, repr_fahrenheit = self.use_fahrenheit)
-        return None
-
-    def clean_buffer(self):
-        """
-        Removes all readings that are older than self.buffer_duration seconds.
-        """
-        if len(self.reading_buff) > 0:
-            now = datetime.datetime.now()
-            for r in self.reading_buff:
-                if (now - r.time).total_seconds() > self.buffer_duration:
-                    self.reading_buff.remove(r)
-    @property
-    def read(self):
-        """
-        Returns the latest-recorded reading.
-
-        Returns:
-            Reading: Latest recorded reading. None if unavailable.
-        """
-        if len(self.reading_buff) > 0:
-            self.clean_buffer()
-            return self.reading_buff[-1]
+            return Reading(t_avg, h_avg, time = self.reading_buff.latest().time, convert = False, repr_fahrenheit = self.use_fahrenheit)
         return None
 
     def add_reading(self, reading : Reading):
         """
-        Adds a Reading object to the reading buffer.
+        Adds a Reading object to the reading buffer. If temperature or humidity is None,
+        no entry is added, but the buffer is cleaned to avoid old entries from being removed.
 
         Args:
             reading (Reading): Reading object captured from sensor.
         """
-        if reading.temp is None or reading.hum is None: return
+        if reading.temp is None or reading.hum is None:
+            self.reading_buff.clean()
+            return
         self.reading_buff.append(reading)
-        self.clean_buffer()
 
-    def get_readings(self):
-        """
-        Returns the latest recorded reading.
-        """
-        return self.read
-
-    def get_buffers(self):
+    def get_buffer(self):
         """
         Returns all values in the buffer.
 
@@ -128,7 +109,7 @@ class TempSensor(Thread):
         """
         return self.reading_buff
 
-    def get_data(self):
+    def read(self):
         """
         Reads from the DHT sensor.
 
@@ -136,18 +117,21 @@ class TempSensor(Thread):
             Reading: Reading object containing the captured data.
         """
         humidity, temperature = Adafruit_DHT.read_retry(self.sensor, self.pin)
-        if humidity != None: humidity = round(humidity, 2)
-        if temperature != None: temperature = round(temperature, 2)
+        if humidity != None and temperature != None:
+            humidity = round(humidity, 2)
+            temperature = round(temperature, 2)
+        else:
+            LOGGER.error(f"Failed to read sensor. Sensor returned {temperature}, {humidity}.")
         return Reading(temperature, humidity, convert = self.use_fahrenheit, repr_fahrenheit = self.use_fahrenheit)
 
     def run(self):
         """
-        Continously reads from sensor every second.
+        Continuously reads from sensor every second.
         Runs indefinitely until terminate() is called.
         """
         while not self.term.is_set():
             try:
-                self.add_reading(self.get_data())
+                self.add_reading(self.read())
             except Exception as e:
                 LOGGER.error(f"Error reading from DHT22: {str(e)}")
             # dht sensors need a minimum of 2 seconds between readings
