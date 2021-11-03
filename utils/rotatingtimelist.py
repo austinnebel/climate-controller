@@ -12,6 +12,7 @@ class RotatingTimeList:
         object or a Reading object. If an entry is older than [duration] seconds, it is removed automatically.
         Therefore all entries in the list stay within the last [duration] seconds.
 
+        All methods that add or retrieve from this list automatically clean out old entries before returning.
 
         Args:
             duration (int): Amount of time that the entries should span, in seconds.
@@ -33,7 +34,7 @@ class RotatingTimeList:
 
     def all(self):
         """
-        Cleans old entries, then returns all entries.
+        Returns all entries.
 
         Returns:
             list[datetime]: List of datetime objects.
@@ -42,19 +43,20 @@ class RotatingTimeList:
 
     def append(self, time_entry = None):
         """
-        Adds a time entry to self.list, then cleans old entries.
+        Adds a time entry to self.list.
 
         Args:
             time_entry (Datetime, Reading): Optional. If not present, creates and appends a new datetime object.
         """
         entry = dt.now() if time_entry is None else time_entry
-        self.list.append(entry)
         self.clean()
+        self.list.append(entry)
 
     def latest(self):
         """
         Returns latest time entry.
         """
+        self.clean()
         if len(self.list) > 0:
             return self.list[-1]
         return None
@@ -63,6 +65,7 @@ class RotatingTimeList:
         """
         Returns oldest time entry.
         """
+        self.clean()
         if len(self.list) > 0:
             return self.list[0]
         return None
