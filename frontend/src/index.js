@@ -39,7 +39,7 @@ class Home extends React.Component {
     }
     async componentDidMount() {
         try {
-            const res = await axios.get("http://localhost:8000/data/");
+            const res = await axios.get("http://localhost:8000/data/api");
             const climateData = await res.data;
 
             this.setState({
