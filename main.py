@@ -6,9 +6,8 @@ import sys
 from threading import Event
 import time
 import traceback
+import requests
 from devices import TempSensor, RelayDevice
-from utils import RotatingTimeList
-from server import Server, generate_graphs
 
 
 LOGGER = logging.getLogger()
@@ -63,8 +62,6 @@ class Service:
         signal.signal(signal.SIGINT, self.exit_handler)
         signal.signal(signal.SIGTERM, self.exit_handler)
 
-        self.plot_points = RotatingTimeList(self.graph_duration)
-
         self.init_devices()
 
     def exit_handler(self, sig, frame):
@@ -97,7 +94,6 @@ class Service:
 
         # server settings
         self.server_port = config.getint("SERVER", "port")
-        self.graph_location = config.get("SERVER", "graph_location")
 
         # gpio settings
         self.heater_gpio = config.getint("GPIO", "heater")
@@ -124,19 +120,27 @@ class Service:
         while not self.dht.available() and not self.term.is_set():
             self.term.wait(0.1)
 
-    def start_html_server(self):
-        """
-        Starts the HTML server.
-        """
-        self.server = Server(self.dht, self.heater, self.humidifier, self.server_port)
-        self.server.start()
+    def send_data(self, reading):
+
+        try:
+            r = requests.post("localhost:8080/data/api", timeout = 5, json = {
+                "temperature": reading.temp,
+                "humidity": reading.hum,
+                "time": reading.time
+            })
+        except Exception as e:
+            LOGGER.error(f"Failed to update database. Error: {e}")
+        if r.status_code == 201:
+            LOGGER.debug(f"Database updated successfully with entry {reading}")
+            return True
+        return False
+
 
     def start(self):
         """
         Starts the main service thread.
         """
         self.begin_reading()
-        self.start_html_server()
 
         LOGGER.info("Starting main loop.")
         while not self.term.is_set():
@@ -157,21 +161,13 @@ class Service:
             LOGGER.debug(f"Graph Point Buffer: {[str(r) for r in self.plot_points.all()]}")
 
             self.update_devices(reading)
-            self.graph_data(self.plot_points.all())
+            self.send_data(reading)
 
             # wait self.update_time seconds, subtracting execution time of loop
             self.term.wait(self.update_time-(time.time()-s))
 
         LOGGER.info("Exited main loop.")
 
-    def graph_data(self, data_points):
-        """
-        Graphs climate data to a png file.
-
-        Args:
-            data_points (list): List of Reading objects to plot in a graph.
-        """
-        generate_graphs(data_points, self.heater, self.lamp, self.humidifier, self.graph_location)
 
     def update_devices(self, reading):
         """
