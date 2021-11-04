@@ -14,15 +14,17 @@ import { VictoryChart, VictoryLine, VictoryTheme } from "victory";
 
 function Graph(props) {
     return (
-        <VictoryChart theme={VictoryTheme.material}>
+        <VictoryChart theme={VictoryTheme.material} domainPadding={20}>
             <VictoryLine
                 style={{
                     data: { stroke: "#c43a31" },
                     parent: { border: "1px solid #ccc" },
                 }}
                 data={props.dataPoints}
+                interpolation="catmullRom"
                 x={props.x}
                 y={props.y}
+                name={props.name}
             />
         </VictoryChart>
     );
@@ -60,11 +62,13 @@ class Home extends React.Component {
                         dataPoints={this.state.climateData}
                         x="time"
                         y="temperature"
+                        name="Temperature"
                     />
                     <Graph
                         dataPoints={this.state.climateData}
                         x="time"
                         y="humidity"
+                        name="Humidity"
                     />
                 </div>
             </div>
