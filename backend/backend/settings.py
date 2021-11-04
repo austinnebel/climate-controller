@@ -30,7 +30,8 @@ CORS_ORIGIN_WHITELIST = ['http://localhost:3000']
 
 # global time formatting
 REST_FRAMEWORK = {
-    'TIME_FORMAT': "%I:%M %p"
+    'TIME_FORMAT': "%I:%M %p",
+    'DATETIME_FORMAT': "%Y-%m-%d %I:%M:%S %p",
 }
 
 # Application definition
