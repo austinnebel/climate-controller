@@ -11,9 +11,9 @@ from datetime import datetime, timedelta
 
 TIME_DURATION = timedelta(hours = 3)
 
-class ClimateDataAPI(viewsets.GenericViewSet):
+class ClimateDataAPI(viewsets.ViewSet):
 
-    permission_classes = [permissions.IsAuthenticated ]
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly ]
 
     def list(self, request, *args, **kwargs):
         """
@@ -21,7 +21,7 @@ class ClimateDataAPI(viewsets.GenericViewSet):
         """
         duration = int(request.data.get("duration")) if request.data.get("duration") else TIME_DURATION
 
-        queryset = ClimateData.objects.filter(time__gte=datetime.now() - duration).order_by('-time')
+        queryset = ClimateData.objects.filter(time__gte=datetime.now() - duration).order_by('time')
         serializer = ClimateDataSerializer(queryset, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
@@ -38,12 +38,25 @@ class ClimateDataAPI(viewsets.GenericViewSet):
         """
         Create a climate data entry.
         """
-        data = {
-            'temperature': request.data.get('temperature'),
-            'humidity': request.data.get('humidity'),
-        }
 
-        serializer = ClimateDataSerializer(data=data)
+        serializer = ClimateDataSerializer(data=request.data)
+        if serializer.is_valid():
+
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    @action(detail=False, methods=['post'])
+    def createbatch(self, request, *args, **kwargs):
+        """
+        Creates a batch of climate data entries.
+        """
+
+        if not request.data.get('batch'):
+            return Response(status=status.HTTP_400_BAD_REQUEST)
+
+        serializer = ClimateDataSerializer(data=request.data.get('batch'), many=True)
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data, status=status.HTTP_201_CREATED)
