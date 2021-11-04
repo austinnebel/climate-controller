@@ -5,7 +5,7 @@ from django.db.models import CheckConstraint, Q
 class ClimateData(models.Model):
     temperature = models.FloatField(max_length=6, blank=False)
     humidity = models.FloatField(max_length=6, blank=False, validators=[MinValueValidator(0.0), MaxValueValidator(100.0)])
-    time = models.TimeField(auto_now = True, blank=False)
+    time = models.DateTimeField(auto_now_add=True, blank=True)
 
     class Meta:
         constraints = (
