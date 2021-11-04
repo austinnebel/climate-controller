@@ -13,7 +13,7 @@ class GroupSerializer(serializers.HyperlinkedModelSerializer):
         model = Group
         fields = ['url', 'name']
 
-class ClimateDataSerializer(serializers.HyperlinkedModelSerializer):
+class ClimateDataSerializer(serializers.ModelSerializer):
     class Meta:
         model = ClimateData
-        fields = ['temperature', 'humidity', 'time']
+        fields = ['id', 'temperature', 'humidity', 'time']

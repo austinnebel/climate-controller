@@ -5,6 +5,7 @@ from rest_framework import permissions
 from application.serializers import UserSerializer, GroupSerializer, ClimateDataSerializer
 from application.models import ClimateData
 
+
 class UserViewSet(viewsets.ModelViewSet):
     """
     API endpoint that allows users to be viewed or edited.
@@ -24,7 +25,7 @@ class GroupViewSet(viewsets.ModelViewSet):
 
 class ClimateDataViewSet(viewsets.ModelViewSet):
     """
-    API endpoint that allows groups to be viewed or edited.
+    API endpoint that allows Climate Data to be listed.
     """
     queryset = ClimateData.objects.all()
     serializer_class = ClimateDataSerializer
