@@ -25,9 +25,13 @@ SECRET_KEY = 'django-insecure-f9m)l+9airiu*jjc_i_9xk_%=__wu_bmv1e-1a(er*#3@ew^&t
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-
-
+# add react application to whitelist
 CORS_ORIGIN_WHITELIST = ['http://localhost:3000']
+
+# global time formatting
+REST_FRAMEWORK = {
+    'TIME_FORMAT': "%I:%M %p"
+}
 
 # Application definition
 
@@ -112,7 +116,7 @@ AUTH_PASSWORD_VALIDATORS = [
 
 LANGUAGE_CODE = 'en-us'
 
-TIME_ZONE = 'UTC'
+TIME_ZONE = 'US/Central'
 
 USE_I18N = True
 
