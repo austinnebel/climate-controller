@@ -82,6 +82,8 @@ class Home extends React.Component {
             if (s.length === 3) {
                 time = s[1] + s[2];
             }
+        } else {
+            temp = humidity = time = "";
         }
 
         return (
