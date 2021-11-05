@@ -4,12 +4,8 @@ verify_ssl = true
 name = "pypi"
 
 [packages]
-"RPi.GPIO" = {version = "*", sys_platform = "=='linux2'"}
-Adafruit-DHT = {version = "*", sys_platform = "=='linux2'"}
-beautifulsoup4 = "*"
-plotly = "*"
-matplotlib = "*"
-numpy = "*"
+"RPi.GPIO" = {version = "*", sys_platform = "=='linux'"}
+Adafruit-DHT = {version = "*", sys_platform = "=='linux'"}
 django = "*"
 djangorestframework = "*"
 django-cors-headers = "*"
