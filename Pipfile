@@ -4,18 +4,22 @@ verify_ssl = true
 name = "pypi"
 
 [packages]
-"RPi.GPIO" = {version = "*", sys_platform = "=='linux2'"}
-Adafruit-DHT = {version = "*", sys_platform = "=='linux2'"}
-beautifulsoup4 = "*"
-plotly = "*"
-matplotlib = "*"
-numpy = "*"
-django = "*"
+Django = "*"
 djangorestframework = "*"
 django-cors-headers = "*"
 requests = "*"
+adafruit-dht = "*"
+"rpi.gpio" = "*"
 
 [dev-packages]
 
 [requires]
 python_version = "3.7"
+
+["packages.'RPi.GPIO'"]
+version = "*"
+sys_platform = "=='linux'"
+
+["packages.Adafruit-DHT"]
+version = "*"
+sys_platform = "=='linux'"
