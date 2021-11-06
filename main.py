@@ -94,6 +94,8 @@ class Service:
 
         # server settings
         self.server_port = config.getint("SERVER", "port")
+        self.user = config.get("SERVER", "username")
+        self.password = config.get("SERVER", "password")
 
         # gpio settings
         self.heater_gpio = config.getint("GPIO", "heater")
@@ -123,16 +125,18 @@ class Service:
     def send_data(self, reading):
 
         try:
-            r = requests.post("localhost:8080/data/api", timeout = 5, json = {
+            r = requests.post("http://localhost:8000/data/api/", timeout = 5, json = {
                 "temperature": reading.temp,
                 "humidity": reading.hum,
-                "time": reading.time
-            })
+                "time": str(reading.time)
+            }, auth = (self.user, self.password))
         except Exception as e:
             LOGGER.error(f"Failed to update database. Error: {e}")
+            return False
         if r.status_code == 201:
             LOGGER.debug(f"Database updated successfully with entry {reading}")
             return True
+        LOGGER.error(f"Database returned status code of {r.status_code}. Content: {r.content}")        
         return False
 
 
@@ -154,11 +158,8 @@ class Service:
                 LOGGER.error("ERROR: Failed to read sensor.")
                 continue
 
-            self.plot_points.append(reading)
-
             LOGGER.info(f"{reading}   -   Heater: {self.heater.is_on()}   -   Lamp: {self.lamp.is_on()}")
             LOGGER.debug(f"DHT Reading Buffer: {[str(r) for r in self.dht.get_buffer()]}")
-            LOGGER.debug(f"Graph Point Buffer: {[str(r) for r in self.plot_points.all()]}")
 
             self.update_devices(reading)
             self.send_data(reading)
