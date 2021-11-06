@@ -26,8 +26,9 @@ SECRET_KEY = 'django-insecure-f9m)l+9airiu*jjc_i_9xk_%=__wu_bmv1e-1a(er*#3@ew^&t
 DEBUG = True
 
 # add react application to whitelist
-CORS_ORIGIN_WHITELIST = ['http://localhost:3000']
-
+#CORS_ORIGIN_WHITELIST = ['*']
+CORS_ALLOW_ALL_ORIGINS=True
+ALLOWED_HOSTS=["*"]
 # global time formatting
 REST_FRAMEWORK = {
     'TIME_FORMAT': "%I:%M %p",
