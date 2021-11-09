@@ -14,3 +14,7 @@ class ClimateData(models.Model):
                 check=Q(humidity__gte=0.0) & Q(humidity__lte=100.0),
                 name='humidity_range'),
             )
+
+class DeviceData(models.Model):
+    event = models.CharField(max_length=12, blank=False)
+    time = models.DateTimeField(auto_now_add=True, blank=True)
