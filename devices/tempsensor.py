@@ -100,8 +100,6 @@ class TempSensor(Thread):
             return
         self.reading_buff.append(reading)
 
-        self.post_data(self.get_avg())
-
     def post_data(self, reading : Reading):
         json = {
                 "temperature": reading.temp,

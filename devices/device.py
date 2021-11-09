@@ -2,28 +2,26 @@ import logging
 from datetime import datetime as dt
 from time import sleep
 from threading import Thread
-from utils import RotatingTimeList
 from .relay import Relay
 
 LOGGER = logging.getLogger()
 
 class RelayDevice:
 
-    def __init__(self, pin, graph_duration, name = "Device", normally_closed = True):
+    def __init__(self, pin, database, name = "Device", normally_closed = True):
         """
         Class to control a relay-controlled device.
 
         Args:
             pin (int): GPIO pin used to activate relay that powers the device.
-            graph_duration (int): Amount of time that the entires in activation buffer should span.
+            databse (utils.Database): Databse object to upload data to.
             normally_closed (bool, optional): If True, the relay for this device is normally closed i.e. turns off when its GPIO is activated.
                                     If False, the relay for this device is normally open i.e. turns on when its GPIO is activated.
                                     Defaults to True.
         """
         self.relay = Relay(pin, normally_closed = normally_closed)
         self.name = name
-        self.activations = RotatingTimeList(graph_duration)
-        self.deactivations = RotatingTimeList(graph_duration)
+        self.db = database
 
     def is_on(self):
         """
@@ -37,8 +35,14 @@ class RelayDevice:
         """
         if not self.is_on():
             self.relay.on()
-            self.activations.append()
             LOGGER.info(f"Activating {self.name}.")
+
+            data = {
+                "name": self.name,
+                "event": "ON",
+                "time": str(dt.now()),
+            }
+            self.db.send_data(data)
 
     def off(self):
         """
@@ -46,8 +50,13 @@ class RelayDevice:
         """
         if self.is_on():
             self.relay.off()
-            self.deactivations.append()
             LOGGER.info(f"Deactivating {self.name}.")
+            data = {
+                "name": self.name,
+                "event": "OFF",
+                "time": str(dt.now()),
+            }
+            self.db.send_data(data)
 
     def _activate_timed(self, activation_time):
         """

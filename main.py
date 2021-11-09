@@ -77,9 +77,6 @@ class Service:
         config = configparser.ConfigParser()
         config.read(self.config_file)
 
-        # general settings
-        self.update_time = config.getint("GENERAL", "update_time")
-
         # thermostat settings
         self.desired_temp = config.getint("THERMOSTAT", "desired_temp")
         self.desired_hum = config.getint("THERMOSTAT", "desired_humidity")
@@ -87,6 +84,7 @@ class Service:
         self.hum_range = config.getint("THERMOSTAT", "humidity_range")
         self.buffer_dur = config.getint("THERMOSTAT", "buffer_duration")
         self.spray_dur = config.getint("THERMOSTAT", "spray_duration")
+        self.hardware_interval = config.getint("THERMOSTAT", "hardware_interval")
 
         # schedule settings
         self.day_start = config.getint("SCHEDULE", "day_start")
@@ -97,6 +95,7 @@ class Service:
         self.server_port = config.getint("SERVER", "port")
         self.user = config.get("SERVER", "username")
         self.password = config.get("SERVER", "password")
+        self.db_interval = config.getint("SERVER", "data_update_interval")
 
         self.server_url = f"{self.server_url}:{self.server_port}"
         self.device_url = config.get('SERVER', 'device_url')
@@ -139,8 +138,11 @@ class Service:
         self.begin_reading()
 
         LOGGER.info("Starting main loop.")
+
+        last_hardware_update = time.time()
+        last_db_update = time.time()
+
         while not self.term.is_set():
-            s = time.time()
 
             update_log_file()
 
@@ -148,15 +150,23 @@ class Service:
             temp, hum = (reading.temp, reading.hum)
             if temp is None or hum is None:
                 LOGGER.error("ERROR: Failed to read sensor.")
+                self.term.wait(60)
                 continue
 
             LOGGER.info(f"{reading}   -   Heater: {self.heater.is_on()}   -   Lamp: {self.lamp.is_on()}")
             LOGGER.debug(f"DHT Reading Buffer: {[str(r) for r in self.dht.get_buffer()]}")
 
-            self.update_devices(reading)
+            # only update hardware every hardware_interval seconds
+            if time.time() - last_hardware_update > self.hardware_interval:
+                last_hardware_update = time.time()
+                self.update_devices(reading)
 
-            # wait self.update_time seconds, subtracting execution time of loop
-            self.term.wait(self.update_time-(time.time()-s))
+            if time.time() - last_db_update > self.db_interval:
+                last_db_update = time.time()
+                self.dht.post_data(reading)
+
+            # update database every minute
+            self.term.wait(60)
 
         LOGGER.info("Exited main loop.")
 
