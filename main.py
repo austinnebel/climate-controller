@@ -125,7 +125,7 @@ class Service:
     def send_data(self, reading):
 
         try:
-            r = requests.post("http://localhost:8000/data/api/", timeout = 5, json = {
+            r = requests.post("http://localhost:8000/api/data/", timeout = 5, json = {
                 "temperature": reading.temp,
                 "humidity": reading.hum,
                 "time": str(reading.time)
@@ -136,7 +136,7 @@ class Service:
         if r.status_code == 201:
             LOGGER.debug(f"Database updated successfully with entry {reading}")
             return True
-        LOGGER.error(f"Database returned status code of {r.status_code}. Content: {r.content}")        
+        LOGGER.error(f"Database returned status code of {r.status_code}. Content: {r.content}")
         return False
 
 
