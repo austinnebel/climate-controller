@@ -16,5 +16,6 @@ class ClimateData(models.Model):
             )
 
 class DeviceData(models.Model):
+    device = models.CharField(max_length=12, blank=False)
     event = models.CharField(max_length=12, blank=False)
     time = models.DateTimeField(auto_now_add=True, blank=True)
