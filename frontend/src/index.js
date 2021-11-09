@@ -6,9 +6,12 @@ import axios from "axios";
 import { VictoryChart, VictoryLine, VictoryAxis, VictoryTheme } from "victory";
 
 function Graph(props) {
+    if (props.dataPoints === undefined || props.dataPoints.length === 0) {
+        return null;
+    }
     return (
         <div className="graph">
-            <p class="graphheader">{props.name}</p>
+            <p className="graphheader">{props.name}</p>
 
             <VictoryChart
                 theme={VictoryTheme.material}
@@ -33,7 +36,6 @@ function Graph(props) {
                 />
                 <VictoryAxis
                     fixLabelOverlap
-                    tickValues={props.x}
                     tickFormat={(x) => {
                         let split = x.toString().split(" ");
                         let time = split[1];
@@ -57,31 +59,51 @@ class Home extends React.Component {
     }
     async componentDidMount() {
         try {
-            const res = await axios.get("http://localhost:8000/data/api/");
+            const res = await axios.get(
+                "http://nebelaustin.tplinkdns.com:4585/data/api/"
+            );
             const climateData = await res.data;
 
             this.setState({
                 climateData: climateData,
             });
 
-            console.log(this.state);
+            console.log("State:" + this.state);
         } catch (e) {
             console.log(e);
         }
     }
     render() {
-        let data = this.state.climateData;
+        let data = this.state.climateData.slice();
         let temp, humidity, time;
+        let temps = [];
+        let hums = [];
+        let times = [];
+        let points = [];
         if (data.length > 0) {
             temp = data[data.length - 1].temperature;
             humidity = data[data.length - 1].humidity;
             time = data[data.length - 1].time;
 
             let s = time.split(" ");
-            console.log(s);
             if (s.length === 3) {
                 time = s[1] + s[2];
             }
+
+            for (let i = 0; i < data.length; i++) {
+                points = points.concat([
+                    {
+                        temperature: data[i].temperature,
+                        humidity: data[i].humidity,
+                        time: data[i].time,
+                    },
+                ]);
+                temps = temps.concat([data[i].temperature]);
+                hums = hums.concat([data[i].humidity]);
+                times = times.concat([data[i].time]);
+            }
+        } else {
+            temp = humidity = time = "";
         }
 
         return (
@@ -89,20 +111,20 @@ class Home extends React.Component {
                 <div className="header">
                     <h1>Terrarium</h1>
                 </div>
-                <h1 class="contentheader">Climate</h1>
-                <p class="infoheader">{temp + "°F"}</p>
-                <p class="infoheader">{humidity + "%"}</p>
-                <p class="infosubheader">{time}</p>
-                <h1 class="contentheader">Statistics</h1>
+                <h1 className="contentheader">Climate</h1>
+                <p className="infoheader">{temp + "°F"}</p>
+                <p className="infoheader">{humidity + "%"}</p>
+                <p className="infosubheader">{time}</p>
+                <h1 className="contentheader">Statistics</h1>
                 <Graph
-                    dataPoints={this.state.climateData}
+                    dataPoints={data}
                     x="time"
                     y="temperature"
                     name="Temperature"
                     suffix="°F"
                 />
                 <Graph
-                    dataPoints={this.state.climateData}
+                    dataPoints={data}
                     x="time"
                     y="humidity"
                     name="Humidity"
