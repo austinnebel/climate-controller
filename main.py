@@ -7,8 +7,8 @@ from threading import Event
 import time
 import traceback
 
-from utils import Database
 from devices import TempSensor, RelayDevice
+from utils import Database
 
 
 LOGGER = logging.getLogger()
@@ -22,6 +22,7 @@ LOG_FORMATTER = logging.Formatter(LOG_FORMAT, datefmt=LOG_DATE_FORMAT)
 
 # log level
 LOGGER.setLevel(logging.DEBUG)
+logging.getLogger("urllib3").setLevel(logging.WARNING)
 
 LOG_FILE_HANDLER = None
 def update_log_file():
@@ -93,7 +94,7 @@ class Service:
         self.day_end = config.getint("SCHEDULE", "day_end")
 
         # server settings
-        self.server_url = config.getint("SERVER", "base_url")
+        self.server_url = config.get("SERVER", "base_url")
         self.server_port = config.getint("SERVER", "port")
         self.user = config.get("SERVER", "username")
         self.password = config.get("SERVER", "password")
@@ -112,8 +113,8 @@ class Service:
     def init_devices(self):
         # initialize devices
 
-        self.data_upload = Database(self.server_url, self.user, self.password)
-        self.device_upload = Database(self.server_url, self.user, self.password)
+        self.data_upload = Database(self.server_url + self.data_url, self.user, self.password)
+        self.device_upload = Database(self.server_url + self.device_url, self.user, self.password)
 
         self.heater = RelayDevice(self.heater_gpio, self.device_upload, name = "Heating Pad", normally_closed = True)
         self.lamp = RelayDevice(self.lamp_gpio, self.device_upload, name = "Lamp", normally_closed = False)
