@@ -93,9 +93,14 @@ class Service:
         self.day_end = config.getint("SCHEDULE", "day_end")
 
         # server settings
+        self.server_url = config.getint("SERVER", "base_url")
         self.server_port = config.getint("SERVER", "port")
         self.user = config.get("SERVER", "username")
         self.password = config.get("SERVER", "password")
+
+        self.server_url = f"{self.server_url}:{self.server_port}"
+        self.device_url = config.get('SERVER', 'device_url')
+        self.data_url = config.get('SERVER', 'data_url')
 
         # gpio settings
         self.heater_gpio = config.getint("GPIO", "heater")
