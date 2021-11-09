@@ -89,19 +89,6 @@ class Home extends React.Component {
             if (s.length === 3) {
                 time = s[1] + s[2];
             }
-
-            for (let i = 0; i < data.length; i++) {
-                points = points.concat([
-                    {
-                        temperature: data[i].temperature,
-                        humidity: data[i].humidity,
-                        time: data[i].time,
-                    },
-                ]);
-                temps = temps.concat([data[i].temperature]);
-                hums = hums.concat([data[i].humidity]);
-                times = times.concat([data[i].time]);
-            }
         } else {
             temp = humidity = time = "";
         }
