@@ -47,7 +47,7 @@ class Reading:
 
 class TempSensor(Thread):
 
-    def __init__(self, pin, use_fahrenheit = True, buffer_duration = 30):
+    def __init__(self, pin, db, use_fahrenheit = True, buffer_duration = 30):
         """
         Continuously captures temperature and humidity data from DHT22. This class
         can be instantiated, and then run as a thread using its run() method.
@@ -66,7 +66,7 @@ class TempSensor(Thread):
         self.reading_buff = RotatingTimeList(buffer_duration)
         self.use_fahrenheit = use_fahrenheit
         self.buffer_duration = buffer_duration
-
+        self.db = db
         self.term = Event()
 
     def available(self):
@@ -99,6 +99,16 @@ class TempSensor(Thread):
             self.reading_buff.clean()
             return
         self.reading_buff.append(reading)
+
+        self.post_data(self.get_avg())
+
+    def post_data(self, reading : Reading):
+        json = {
+                "temperature": reading.temp,
+                "humidity": reading.hum,
+                "time": str(reading.time)
+            }
+        self.db.send_data(json)
 
     def get_buffer(self):
         """

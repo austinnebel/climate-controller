@@ -6,7 +6,8 @@ import sys
 from threading import Event
 import time
 import traceback
-import requests
+
+from utils import Database
 from devices import TempSensor, RelayDevice
 
 
@@ -78,7 +79,6 @@ class Service:
 
         # general settings
         self.update_time = config.getint("GENERAL", "update_time")
-        self.graph_duration = config.getint("GENERAL", "graph_duration") * 60
 
         # thermostat settings
         self.desired_temp = config.getint("THERMOSTAT", "desired_temp")
@@ -108,12 +108,17 @@ class Service:
         self.lamp_gpio = config.getint("GPIO", "lamp")
         self.dht_gpio = config.getint("GPIO", "dht22")
 
+
     def init_devices(self):
         # initialize devices
-        self.heater = RelayDevice(self.heater_gpio, self.graph_duration, name = "Heating Pad", normally_closed = True)
-        self.lamp = RelayDevice(self.lamp_gpio, self.graph_duration, name = "Lamp", normally_closed = False)
-        self.humidifier = RelayDevice(self.humidifier_gpio, self.graph_duration, name = "Humidifier", normally_closed = False)
-        self.dht = TempSensor(self.dht_gpio, buffer_duration=self.buffer_dur)
+
+        self.data_upload = Database(self.server_url, self.user, self.password)
+        self.device_upload = Database(self.server_url, self.user, self.password)
+
+        self.heater = RelayDevice(self.heater_gpio, self.device_upload, name = "Heating Pad", normally_closed = True)
+        self.lamp = RelayDevice(self.lamp_gpio, self.device_upload, name = "Lamp", normally_closed = False)
+        self.humidifier = RelayDevice(self.humidifier_gpio, self.device_upload, name = "Humidifier", normally_closed = False)
+        self.dht = TempSensor(self.dht_gpio, self.data_upload, buffer_duration=self.buffer_dur)
 
     def begin_reading(self):
         """
@@ -126,24 +131,6 @@ class Service:
         LOGGER.info("Waiting for self.dht readings..")
         while not self.dht.available() and not self.term.is_set():
             self.term.wait(0.1)
-
-    def send_data(self, reading):
-
-        try:
-            r = requests.post("http://localhost:8000/api/data/", timeout = 5, json = {
-                "temperature": reading.temp,
-                "humidity": reading.hum,
-                "time": str(reading.time)
-            }, auth = (self.user, self.password))
-        except Exception as e:
-            LOGGER.error(f"Failed to update database. Error: {e}")
-            return False
-        if r.status_code == 201:
-            LOGGER.debug(f"Database updated successfully with entry {reading}")
-            return True
-        LOGGER.error(f"Database returned status code of {r.status_code}. Content: {r.content}")
-        return False
-
 
     def start(self):
         """
@@ -167,7 +154,6 @@ class Service:
             LOGGER.debug(f"DHT Reading Buffer: {[str(r) for r in self.dht.get_buffer()]}")
 
             self.update_devices(reading)
-            self.send_data(reading)
 
             # wait self.update_time seconds, subtracting execution time of loop
             self.term.wait(self.update_time-(time.time()-s))
