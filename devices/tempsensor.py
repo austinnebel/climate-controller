@@ -1,13 +1,11 @@
 import logging
-import time
 import datetime
 import Adafruit_DHT
 
-
 from threading import Thread, Event
 
-LOGGER = logging.getLogger()
 
+LOGGER = logging.getLogger()
 
 class Reading:
 
@@ -65,7 +63,6 @@ class TempSensor(Thread):
         self.pin = pin
         self.reading_buff = RotatingTimeList(buffer_duration)
         self.use_fahrenheit = use_fahrenheit
-        self.buffer_duration = buffer_duration
         self.db = db
         self.term = Event()
 
@@ -80,11 +77,16 @@ class TempSensor(Thread):
         Returns:
             Reading, None: Reading object if readings are available in the buffer. False otherwise.
         """
-        if len(self.reading_buff) > 0:
-            t_avg = sum([r.temp for r in self.reading_buff])/len(self.reading_buff)
-            h_avg = sum([r.hum for r in self.reading_buff])/len(self.reading_buff)
+        # toList creates shallow copy to prevent threads from modifying during iteration
+        buff = self.reading_buff.toList()
+        buff_size = len(buff)
 
-            return Reading(t_avg, h_avg, time = self.reading_buff.latest().time, convert = False, repr_fahrenheit = self.use_fahrenheit)
+        if buff_size > 0:
+            latest = buff[-1]
+            t_avg = sum([r.temp for r in buff])/buff_size
+            h_avg = sum([r.hum for r in buff])/buff_size
+
+            return Reading(t_avg, h_avg, time = latest.time, convert = False, repr_fahrenheit = self.use_fahrenheit)
         return None
 
     def add_reading(self, reading : Reading):
