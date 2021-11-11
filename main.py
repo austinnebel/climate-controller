@@ -3,9 +3,10 @@ import datetime
 import logging
 import signal
 import sys
-from threading import Event
 import time
 import traceback
+
+from threading import Event
 
 from devices import TempSensor, RelayDevice
 from utils import Database
@@ -148,9 +149,8 @@ class Service:
             update_log_file()
 
             reading = self.dht.get_avg()
-            temp, hum = (reading.temp, reading.hum)
-            if temp is None or hum is None:
-                LOGGER.error("ERROR: Failed to read sensor.")
+            if reading is None or reading.temp is None or reading.hum is None:
+                LOGGER.error("ERROR: Failed to read averages from sensor.")
                 self.term.wait(60)
                 continue
 
