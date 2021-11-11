@@ -1,53 +1,61 @@
 import React from "react";
 import ReactDOM from "react-dom";
-import "./index.css";
 import axios from "axios";
-
+import { useState, useEffect } from "react";
 import { VictoryChart, VictoryLine, VictoryAxis, VictoryTheme } from "victory";
+import "./index.css";
 
-function Graph(props) {
-    if (props.dataPoints === undefined || props.dataPoints.length === 0) {
-        return null;
+class Graph extends React.Component {
+    async componentDidUpdate(prevProps) {
+        if (this.props.data !== prevProps.climateData) {
+            this.props.fetchData();
+        }
     }
-    return (
-        <div className="graph">
-            <p className="graphheader">{props.name}</p>
 
-            <VictoryChart
-                theme={VictoryTheme.material}
-                padding={{ top: 5, bottom: 60, left: 50, right: 50 }}
-                domainPadding={20}
-            >
-                <VictoryLine
-                    style={{
-                        data: { stroke: "#c43a31" },
-                        parent: { border: "1px solid #ccc" },
-                    }}
-                    data={props.dataPoints}
-                    interpolation="catmullRom"
-                    x={props.x}
-                    y={props.y}
-                    name={props.name}
-                />
-                <VictoryAxis
-                    dependentAxis={true}
-                    domain={[60, 100]}
-                    tickFormat={(x) => x + props.suffix}
-                />
-                <VictoryAxis
-                    fixLabelOverlap
-                    tickFormat={(x) => {
-                        let split = x.toString().split(" ");
-                        let time = split[1];
-                        let AmPm = split[2];
-                        let noSeconds =
-                            time.split(":")[0] + ":" + time.split(":")[1];
-                        return noSeconds + AmPm;
-                    }}
-                />
-            </VictoryChart>
-        </div>
-    );
+    render() {
+        let data = this.props.dataPoints.slice();
+        if (!data) {
+            return null;
+        }
+        console.log(this.props.name);
+        return (
+            <div className="graph">
+                <p className="graphheader">{this.props.name}</p>
+
+                <VictoryChart
+                    theme={VictoryTheme.material}
+                    padding={{ top: 5, bottom: 60, left: 50, right: 50 }}
+                    domainPadding={20}
+                >
+                    <VictoryLine
+                        style={{
+                            data: { stroke: "#c43a31" },
+                            parent: { border: "1px solid #ccc" },
+                        }}
+                        data={data}
+                        interpolation="catmullRom"
+                        x={this.props.x}
+                        y={this.props.y}
+                        name={this.props.name}
+                    />
+                    <VictoryAxis
+                        dependentAxis={true}
+                        domain={[60, 100]}
+                        tickFormat={(x) => x + this.props.suffix}
+                    />
+                    <VictoryAxis
+                        fixLabelOverlap={true}
+                        tickFormat={(x) => {
+                            return new Date(x).toLocaleTimeString([], {
+                                hour: "2-digit",
+                                minute: "2-digit",
+                            });
+                        }}
+                    />
+                </VictoryChart>
+            </div>
+        );
+    }
 }
 
 class Home extends React.Component {
@@ -55,43 +63,60 @@ class Home extends React.Component {
         super(props);
         this.state = {
             climateData: [],
+            deviceData: [],
         };
     }
-    async componentDidMount() {
+
+    async fetchData() {
         try {
-            const res = await axios.get(
-                "http://nebelaustin.tplinkdns.com:4585/data/api/"
+            let climateData = await axios.get(
+                "http://nebelaustin.tplinkdns.com:4585/api/data/"
             );
-            const climateData = await res.data;
+            let deviceData = await axios.get(
+                "http://nebelaustin.tplinkdns.com:4585/api/device/"
+            );
+
+            climateData = climateData.data;
+            deviceData = deviceData.data;
 
             this.setState({
                 climateData: climateData,
+                deviceData: deviceData,
             });
 
-            console.log("State:" + this.state);
+            console.log("State:" + this.state.climateData.length);
         } catch (e) {
             console.log(e);
         }
     }
+
+    componentDidMount() {
+        this.fetchData();
+        this.interval = setInterval(() => this.fetchData(), 60000);
+    }
+    componentWillUnmount() {
+        clearInterval(this.interval);
+    }
+
+    getCurrentData(dataList) {
+        if (dataList.length > 0) {
+            let latest = dataList[dataList.length - 1];
+            latest.time = new Date(latest.time).toLocaleTimeString([], {
+                hour: "2-digit",
+                minute: "2-digit",
+            });
+            return latest;
+        }
+        return {
+            temperature: "",
+            humidity: "",
+            time: "",
+        };
+    }
+
     render() {
         let data = this.state.climateData.slice();
-        let temp, humidity, time;
-        let temps = [];
-        let hums = [];
-        let times = [];
-        let points = [];
-        if (data.length > 0) {
-            temp = data[data.length - 1].temperature;
-            humidity = data[data.length - 1].humidity;
-            time = data[data.length - 1].time;
-
-            let s = time.split(" ");
-            if (s.length === 3) {
-                time = s[1] + s[2];
-            }
-        } else {
-            temp = humidity = time = "";
-        }
+        let currData = this.getCurrentData(data);
 
         return (
             <div className="container">
@@ -99,9 +124,9 @@ class Home extends React.Component {
                     <h1>Terrarium</h1>
                 </div>
                 <h1 className="contentheader">Climate</h1>
-                <p className="infoheader">{temp + "°F"}</p>
-                <p className="infoheader">{humidity + "%"}</p>
-                <p className="infosubheader">{time}</p>
+                <p className="infoheader">{currData.temperature + "°F"}</p>
+                <p className="infoheader">{currData.humidity + "%"}</p>
+                <p className="infosubheader">{currData.time}</p>
                 <h1 className="contentheader">Statistics</h1>
                 <Graph
                     dataPoints={data}
@@ -109,6 +134,7 @@ class Home extends React.Component {
                     y="temperature"
                     name="Temperature"
                     suffix="°F"
+                    onUpdate={this.fetchData}
                 />
                 <Graph
                     dataPoints={data}
@@ -116,6 +142,7 @@ class Home extends React.Component {
                     y="humidity"
                     name="Humidity"
                     suffix="%"
+                    onUpdate={this.fetchData}
                 />
             </div>
         );
