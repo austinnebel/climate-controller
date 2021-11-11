@@ -1,8 +1,11 @@
 import logging
+
 from datetime import datetime as dt
 from time import sleep
 from threading import Thread
+
 from .relay import Relay
+
 
 LOGGER = logging.getLogger()
 
@@ -29,34 +32,32 @@ class RelayDevice:
         """
         return self.relay.is_on()
 
+    def send_event(self, event):
+
+        data = {
+            "device": self.name,
+            "event": event,
+            "time": str(dt.now()),
+        }
+        self.db.send_data(data)
+
     def on(self):
         """
         Turns device on.
         """
         if not self.is_on():
-            self.relay.on()
             LOGGER.info(f"Activating {self.name}.")
-
-            data = {
-                "name": self.name,
-                "event": "ON",
-                "time": str(dt.now()),
-            }
-            self.db.send_data(data)
+            self.relay.on()
+            self.send_event("ON")
 
     def off(self):
         """
         Turns device off.
         """
         if self.is_on():
-            self.relay.off()
             LOGGER.info(f"Deactivating {self.name}.")
-            data = {
-                "name": self.name,
-                "event": "OFF",
-                "time": str(dt.now()),
-            }
-            self.db.send_data(data)
+            self.relay.off()
+            self.send_event("OFF")
 
     def _activate_timed(self, activation_time):
         """
