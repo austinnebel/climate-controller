@@ -4,17 +4,17 @@ from rest_framework.response import Response
 from rest_framework.decorators import action
 from django.shortcuts import get_object_or_404
 
+from datetime import datetime, timedelta
+
 from application.models import ClimateData, DeviceData
 from application.serializers import ClimateDataSerializer, DeviceDataSerializer
 
-from datetime import datetime, timedelta
 
 TIME_DURATION = timedelta(hours = 3)
 
-
 class TimedDataView(viewsets.ViewSet):
 
-    permission_classes = [permissions.IsAuthenticatedOrReadOnly ]
+    permission_classes = [ permissions.IsAuthenticatedOrReadOnly ]
     model = None
     serializer = None
 
@@ -24,7 +24,7 @@ class TimedDataView(viewsets.ViewSet):
         """
         duration = int(request.data.get("duration")) if request.data.get("duration") else TIME_DURATION
 
-        queryset = self.model.objects.filter(time__gte=datetime.now() - duration).order_by('time')
+        queryset = self.model.objects.order_by('time').filter(time__gte=datetime.now() - duration)
         serializer = self.serializer(queryset, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
@@ -112,7 +112,7 @@ class ClimateDataAPI(TimedDataView):
     model = ClimateData
     serializer = ClimateDataSerializer
 
-class DeviveDataAPI(TimedDataView):
+class DeviceDataAPI(TimedDataView):
 
     model = DeviceData
     serializer = DeviceDataSerializer
