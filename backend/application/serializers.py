@@ -21,4 +21,4 @@ class ClimateDataSerializer(serializers.ModelSerializer):
 class DeviceDataSerializer(serializers.ModelSerializer):
     class Meta:
         model = DeviceData
-        fields = ['id', 'event', 'time']
+        fields = ['id', 'device', 'event', 'time']
