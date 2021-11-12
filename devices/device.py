@@ -37,7 +37,6 @@ class RelayDevice:
         data = {
             "device": self.name,
             "event": event,
-            "time": str(dt.now()),
         }
         self.db.send_data(data)
 
