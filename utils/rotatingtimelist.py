@@ -1,7 +1,7 @@
 import logging
 from datetime import datetime as dt
 
-from devices import Reading
+from .reading import Reading
 
 LOGGER = logging.getLogger()
 
