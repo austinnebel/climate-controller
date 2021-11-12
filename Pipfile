@@ -8,8 +8,10 @@ Django = "*"
 djangorestframework = "*"
 django-cors-headers = "*"
 requests = "*"
-adafruit-dht = "*"
-"rpi.gpio" = "*"
+channels = "*"
+channels-redis = "*"
+asyncio = "*"
+websockets = "*"
 
 [dev-packages]
 
