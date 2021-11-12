@@ -32,7 +32,7 @@ ALLOWED_HOSTS=["*"]
 # global time formatting
 REST_FRAMEWORK = {
     'TIME_FORMAT': "%I:%M %p",
-    'DATETIME_FORMAT': "%Y-%m-%d %I:%M:%S %p",
+    'DATETIME_FORMAT': "%Y-%m-%d %H:%M:%S",
 }
 
 WSGI_APPLICATION = "backend.wsgi.application"

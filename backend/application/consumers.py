@@ -1,7 +1,8 @@
 import json
 
 from channels.generic.websocket import AsyncJsonWebsocketConsumer
-
+from django.utils.dateparse import parse_datetime
+from django.conf import settings
 
 class DataConsumer(AsyncJsonWebsocketConsumer):
     async def connect(self):
@@ -28,6 +29,10 @@ class DataConsumer(AsyncJsonWebsocketConsumer):
         print(f"RECEIVED {content}")
 
         message = content["text"]
+        if "time" in message.keys():
+            format = settings.REST_FRAMEWORK["DATETIME_FORMAT"]
+            parsed = parse_datetime(message["time"])
+            message["time"] = parsed.strftime(format)
 
         response = {
                 "type": "send.json",
