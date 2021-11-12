@@ -5,6 +5,15 @@ import { useState, useEffect } from "react";
 import { VictoryChart, VictoryLine, VictoryAxis, VictoryTheme } from "victory";
 import "./index.css";
 
+const SERVER = "localhost:8000";
+
+function formatDate(date) {
+    return new Date(date).toLocaleTimeString([], {
+        hour: "2-digit",
+        minute: "2-digit",
+    });
+}
+
 class Graph extends React.Component {
     async componentDidUpdate(prevProps) {
         if (this.props.data !== prevProps.climateData) {
@@ -45,12 +54,7 @@ class Graph extends React.Component {
                     />
                     <VictoryAxis
                         fixLabelOverlap={true}
-                        tickFormat={(x) => {
-                            return new Date(x).toLocaleTimeString([], {
-                                hour: "2-digit",
-                                minute: "2-digit",
-                            });
-                        }}
+                        tickFormat={formatDate}
                     />
                 </VictoryChart>
             </div>
@@ -70,10 +74,10 @@ class Home extends React.Component {
     async fetchData() {
         try {
             let climateData = await axios.get(
-                "http://nebelaustin.tplinkdns.com:4585/api/data/"
+                "http://" + SERVER + "/api/data/"
             );
             let deviceData = await axios.get(
-                "http://nebelaustin.tplinkdns.com:4585/api/device/"
+                "http://" + SERVER + "/api/device/"
             );
 
             climateData = climateData.data;
