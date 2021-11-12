@@ -35,6 +35,18 @@ REST_FRAMEWORK = {
     'DATETIME_FORMAT': "%Y-%m-%d %I:%M:%S %p",
 }
 
+WSGI_APPLICATION = "backend.wsgi.application"
+ASGI_APPLICATION = "backend.asgi.application"
+
+CHANNEL_LAYERS = {
+    'default': {
+        'BACKEND': 'channels_redis.core.RedisChannelLayer',
+        'CONFIG': {
+            "hosts": [('127.0.0.1', 6379)],
+        },
+    },
+}
+
 # Application definition
 
 INSTALLED_APPS = [
@@ -46,6 +58,8 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'rest_framework',
     'corsheaders',
+    'channels',
+    'channels_redis',
     'application'
 ]
 
