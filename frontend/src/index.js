@@ -26,7 +26,6 @@ class Graph extends React.Component {
         if (!data) {
             return null;
         }
-        console.log(this.props.name);
         return (
             <div className="graph">
                 <p className="graphheader">{this.props.name}</p>
@@ -62,12 +61,27 @@ class Graph extends React.Component {
     }
 }
 
+function DataOverview(props) {
+    if (props.data) {
+        return (
+            <div>
+                <p className="infoheader">{props.data.temperature + "°F"}</p>
+                <p className="infoheader">{props.data.humidity + "%"}</p>
+                <p className="infosubheader">{props.data.time}</p>
+            </div>
+        );
+    } else {
+        return <div></div>;
+    }
+}
+
 class Home extends React.Component {
     constructor(props) {
         super(props);
         this.state = {
             climateData: [],
             deviceData: [],
+            currentInfo: {},
         };
     }
 
@@ -87,40 +101,70 @@ class Home extends React.Component {
                 climateData: climateData,
                 deviceData: deviceData,
             });
-
-            console.log("State:" + this.state.climateData.length);
         } catch (e) {
             console.log(e);
         }
     }
 
-    componentDidMount() {
-        this.fetchData();
-        this.interval = setInterval(() => this.fetchData(), 60000);
-    }
-    componentWillUnmount() {
-        clearInterval(this.interval);
+    initSocket() {
+        this.updatesSocket = new WebSocket(
+            `ws://` + SERVER + `/ws/currentData/`
+        );
+        this.updatesSocket.onmessage = (e) => {
+            const data = JSON.parse(e.data);
+
+            if (data.type !== "send.json") {
+                return;
+            }
+            this.setState({ currentInfo: data.text });
+        };
+
+        this.updatesSocket.onclose = function (e) {
+            console.error("Chat socket closed unexpectedly.");
+        };
     }
 
-    getCurrentData(dataList) {
-        if (dataList.length > 0) {
-            let latest = dataList[dataList.length - 1];
-            latest.time = new Date(latest.time).toLocaleTimeString([], {
-                hour: "2-digit",
-                minute: "2-digit",
-            });
-            return latest;
+    latestInfo(history, sockInfo) {
+        // if no data history, return sockInfo
+        if (!history) {
+            return sockInfo;
         }
-        return {
-            temperature: "",
-            humidity: "",
-            time: "",
-        };
+        let latestHistory = history[history.length - 1];
+        // if sockInfo is undefined, return latest history
+        if (!sockInfo.time) {
+            return latestHistory;
+        }
+
+        // get most recent date
+        let historyTime = new Date(latestHistory.time);
+        let sockTime = new Date(sockInfo.time);
+
+        if (sockTime > historyTime) {
+            return sockInfo;
+        }
+        return latestHistory;
+    }
+
+    componentDidMount() {
+        this.fetchData();
+        this.initSocket();
+
+        this.interval = setInterval(() => this.fetchData(), 60000);
+    }
+
+    componentWillUnmount() {
+        clearInterval(this.interval);
+        this.updatesSocket.close();
     }
 
     render() {
         let data = this.state.climateData.slice();
-        let currData = this.getCurrentData(data);
+        let currData = this.latestInfo(data, this.state.currentInfo);
+        console.log(data);
+
+        if (currData) {
+            data.push(currData);
+        }
 
         return (
             <div className="container">
@@ -128,9 +172,7 @@ class Home extends React.Component {
                     <h1>Terrarium</h1>
                 </div>
                 <h1 className="contentheader">Climate</h1>
-                <p className="infoheader">{currData.temperature + "°F"}</p>
-                <p className="infoheader">{currData.humidity + "%"}</p>
-                <p className="infosubheader">{currData.time}</p>
+                <DataOverview data={currData} />
                 <h1 className="contentheader">Statistics</h1>
                 <Graph
                     dataPoints={data}
