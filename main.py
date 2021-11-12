@@ -7,6 +7,8 @@ import time
 import traceback
 
 from threading import Event
+from utils import SocketConnector, now
+
 
 from devices import TempSensor, RelayDevice
 from utils import Database
@@ -94,6 +96,7 @@ class Service:
 
         # server settings
         self.server_url = config.get("SERVER", "base_url")
+        self.sock_url = config.get("SERVER", "sock_url")
         self.server_port = config.getint("SERVER", "port")
         self.user = config.get("SERVER", "username")
         self.password = config.get("SERVER", "password")
@@ -115,11 +118,12 @@ class Service:
 
         self.data_upload = Database(self.server_url + self.data_url, self.user, self.password)
         self.device_upload = Database(self.server_url + self.device_url, self.user, self.password)
+        self.data_socket = SocketConnector(self.sock_url, self.user, self.password)
 
         self.heater = RelayDevice(self.heater_gpio, self.device_upload, name = "Heating Pad", normally_closed = True)
         self.lamp = RelayDevice(self.lamp_gpio, self.device_upload, name = "Lamp", normally_closed = False)
         self.humidifier = RelayDevice(self.humidifier_gpio, self.device_upload, name = "Humidifier", normally_closed = False)
-        self.dht = TempSensor(self.dht_gpio, self.data_upload, buffer_duration=self.buffer_dur)
+        self.dht = TempSensor(self.dht_gpio, self.data_upload, self.data_socket, buffer_duration=self.buffer_dur)
 
     def begin_reading(self):
         """
