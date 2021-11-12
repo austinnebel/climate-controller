@@ -5,6 +5,9 @@ import asyncio
 from queue import Queue
 from websockets import connect
 
+from .now import now
+
+
 LOGGER = logging.getLogger()
 
 class Database():
@@ -18,6 +21,9 @@ class Database():
         self.password = password
 
     def send_data(self, data, timeout = 5):
+
+        if "time" not in data.keys():
+            data["time"] = str(now())
 
         try:
             r = requests.post(self.url, timeout = timeout, json = data, auth = (self.user, self.password))
@@ -46,7 +52,7 @@ class SocketConnector:
     async def connect(self, close_timeout = 5):
         LOGGER.debug(f"Connecting to {self.url}")
         try:
-            self.ws = await connect(f"ws://{self.url}", close_timeout = close_timeout)
+            self.ws = await connect(self.url, close_timeout = close_timeout)
         except asyncio.TimeoutError as e:
             LOGGER.error("Failed to make socket connection to database.")
             return False
@@ -57,6 +63,9 @@ class SocketConnector:
             connected = await self.connect()
             if not connected:
                 return False
+
+        if "time" not in message.keys():
+            message["time"] = str(now())
 
         await self.ws.send(json.dumps(
             {
