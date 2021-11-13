@@ -1,17 +1,24 @@
 import React from "react";
 import ReactDOM from "react-dom";
 import axios from "axios";
-import { useState, useEffect } from "react";
-import { VictoryChart, VictoryLine, VictoryAxis, VictoryTheme } from "victory";
+import {
+    VictoryChart,
+    VictoryLine,
+    VictoryAxis,
+    VictoryTheme,
+    VictoryScatter,
+} from "victory";
 import "./index.css";
 
-const SERVER = "localhost:8000";
+const SERVER = "nebelaustin.tplinkdns.com:4585";
 
 function formatDate(date) {
-    return new Date(date).toLocaleTimeString([], {
-        hour: "2-digit",
-        minute: "2-digit",
-    });
+    return new Date(date)
+        .toLocaleTimeString([], {
+            hour: "2-digit",
+            minute: "2-digit",
+        })
+        .replace(/\s+/g, "");
 }
 
 class Graph extends React.Component {
@@ -23,9 +30,15 @@ class Graph extends React.Component {
 
     render() {
         let data = this.props.dataPoints.slice();
+        let latest;
         if (!data) {
             return null;
+        } else {
+            latest = Array(1).fill(data[data.length - 1]);
         }
+
+        console.log(latest);
+
         return (
             <div className="graph">
                 <p className="graphheader">{this.props.name}</p>
@@ -119,8 +132,12 @@ class Home extends React.Component {
             this.setState({ currentInfo: data.text });
         };
 
-        this.updatesSocket.onclose = function (e) {
+        // reconnects after 10 seconds
+        this.updatesSocket.onclose = (e) => {
             console.error("Chat socket closed unexpectedly.");
+            setTimeout(function () {
+                this.initSocket();
+            }, 10000);
         };
     }
 
@@ -132,6 +149,9 @@ class Home extends React.Component {
         let latestHistory = history[history.length - 1];
         // if sockInfo is undefined, return latest history
         if (!sockInfo.time) {
+            if (!latestHistory) {
+                return null;
+            }
             return latestHistory;
         }
 
@@ -160,6 +180,7 @@ class Home extends React.Component {
     render() {
         let data = this.state.climateData.slice();
         let currData = this.latestInfo(data, this.state.currentInfo);
+
         console.log(data);
 
         if (currData) {
