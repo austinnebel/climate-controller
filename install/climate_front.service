@@ -4,7 +4,7 @@ After=network.target
 
 [Service]
 User=pi
-WorkingDirectory=/home/pi/terrarium/frontend
+WorkingDirectory=/home/pi/climate-controller/frontend
 ExecStart=/usr/local/bin/npm run start
 Restart=always
 
