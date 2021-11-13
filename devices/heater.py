@@ -1,3 +1,4 @@
+from datetime import datetime
 import logging
 from .relay import Relay
 
@@ -5,7 +6,7 @@ LOGGER = logging.getLogger()
 
 class Heater:
 
-    def __init__(self, pin, name = "Heater", normally_closed = True):
+    def __init__(self, pin, db, name = "Heater", normally_closed = True):
         """
         Controls a heating device.
 
@@ -17,6 +18,7 @@ class Heater:
         """
         self.relay = Relay(pin, normally_closed = normally_closed)
         self.name = name
+        self.db = db
 
     def is_on(self):
         return self.relay.is_on()
@@ -26,7 +28,21 @@ class Heater:
             LOGGER.info(f"Activating {self.name}.")
             self.relay.on()
 
+            data = {
+                "name": self.name,
+                "event": "ON",
+                "time": str(datetime.now()),
+            }
+            self.db.send_data(data)
+
     def off(self):
         if self.is_on():
             LOGGER.info(f"Deactivating {self.name}.")
             self.relay.off()
+
+            data = {
+                "name": self.name,
+                "event": "OFF",
+                "time": str(datetime.now()),
+            }
+            self.db.send_data(data)

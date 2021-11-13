@@ -4,14 +4,24 @@ verify_ssl = true
 name = "pypi"
 
 [packages]
-"RPi.GPIO" = "*"
-Adafruit-DHT = "*"
-beautifulsoup4 = "*"
-plotly = "*"
-matplotlib = "*"
-numpy = "*"
+Django = "*"
+djangorestframework = "*"
+django-cors-headers = "*"
+requests = "*"
+channels = "*"
+channels-redis = "*"
+asyncio = "*"
+websockets = "*"
 
 [dev-packages]
 
 [requires]
 python_version = "3.7"
+
+["packages.'RPi.GPIO'"]
+version = "*"
+platform_machine = "=='armv6l'"
+
+["packages.Adafruit-DHT"]
+version = "*"
+platform_machine = "=='armv6l'"

@@ -3,12 +3,15 @@ import datetime
 import logging
 import signal
 import sys
-from threading import Event
 import time
 import traceback
+
+from threading import Event
+from utils import SocketConnector, now
+
+
 from devices import TempSensor, RelayDevice
-from utils import RotatingTimeList
-from server import Server, generate_graphs
+from utils import Database
 
 
 LOGGER = logging.getLogger()
@@ -22,6 +25,7 @@ LOG_FORMATTER = logging.Formatter(LOG_FORMAT, datefmt=LOG_DATE_FORMAT)
 
 # log level
 LOGGER.setLevel(logging.DEBUG)
+logging.getLogger("urllib3").setLevel(logging.WARNING)
 
 LOG_FILE_HANDLER = None
 def update_log_file():
@@ -63,8 +67,6 @@ class Service:
         signal.signal(signal.SIGINT, self.exit_handler)
         signal.signal(signal.SIGTERM, self.exit_handler)
 
-        self.plot_points = RotatingTimeList(self.graph_duration)
-
         self.init_devices()
 
     def exit_handler(self, sig, frame):
@@ -79,10 +81,6 @@ class Service:
         config = configparser.ConfigParser()
         config.read(self.config_file)
 
-        # general settings
-        self.update_time = config.getint("GENERAL", "update_time")
-        self.graph_duration = config.getint("GENERAL", "graph_duration") * 60
-
         # thermostat settings
         self.desired_temp = config.getint("THERMOSTAT", "desired_temp")
         self.desired_hum = config.getint("THERMOSTAT", "desired_humidity")
@@ -90,14 +88,23 @@ class Service:
         self.hum_range = config.getint("THERMOSTAT", "humidity_range")
         self.buffer_dur = config.getint("THERMOSTAT", "buffer_duration")
         self.spray_dur = config.getint("THERMOSTAT", "spray_duration")
+        self.hardware_interval = config.getint("THERMOSTAT", "hardware_interval")
 
         # schedule settings
         self.day_start = config.getint("SCHEDULE", "day_start")
         self.day_end = config.getint("SCHEDULE", "day_end")
 
         # server settings
+        self.server_url = config.get("SERVER", "base_url")
+        self.sock_url = config.get("SERVER", "sock_url")
         self.server_port = config.getint("SERVER", "port")
-        self.graph_location = config.get("SERVER", "graph_location")
+        self.user = config.get("SERVER", "username")
+        self.password = config.get("SERVER", "password")
+        self.db_interval = config.getint("SERVER", "data_update_interval")
+
+        self.server_url = f"{self.server_url}:{self.server_port}"
+        self.device_url = config.get('SERVER', 'device_url')
+        self.data_url = config.get('SERVER', 'data_url')
 
         # gpio settings
         self.heater_gpio = config.getint("GPIO", "heater")
@@ -105,12 +112,18 @@ class Service:
         self.lamp_gpio = config.getint("GPIO", "lamp")
         self.dht_gpio = config.getint("GPIO", "dht22")
 
+
     def init_devices(self):
         # initialize devices
-        self.heater = RelayDevice(self.heater_gpio, self.graph_duration, name = "Heating Pad", normally_closed = True)
-        self.lamp = RelayDevice(self.lamp_gpio, self.graph_duration, name = "Lamp", normally_closed = False)
-        self.humidifier = RelayDevice(self.humidifier_gpio, self.graph_duration, name = "Humidifier", normally_closed = False)
-        self.dht = TempSensor(self.dht_gpio, buffer_duration=self.buffer_dur)
+
+        self.data_upload = Database(self.server_url + self.data_url, self.user, self.password)
+        self.device_upload = Database(self.server_url + self.device_url, self.user, self.password)
+        self.data_socket = SocketConnector(self.sock_url, self.user, self.password)
+
+        self.heater = RelayDevice(self.heater_gpio, self.device_upload, name = "Heating Pad", normally_closed = True)
+        self.lamp = RelayDevice(self.lamp_gpio, self.device_upload, name = "Lamp", normally_closed = False)
+        self.humidifier = RelayDevice(self.humidifier_gpio, self.device_upload, name = "Humidifier", normally_closed = False)
+        self.dht = TempSensor(self.dht_gpio, self.data_upload, self.data_socket, buffer_duration=self.buffer_dur)
 
     def begin_reading(self):
         """
@@ -124,54 +137,44 @@ class Service:
         while not self.dht.available() and not self.term.is_set():
             self.term.wait(0.1)
 
-    def start_html_server(self):
-        """
-        Starts the HTML server.
-        """
-        self.server = Server(self.dht, self.heater, self.humidifier, self.server_port)
-        self.server.start()
-
     def start(self):
         """
         Starts the main service thread.
         """
         self.begin_reading()
-        self.start_html_server()
 
         LOGGER.info("Starting main loop.")
+
+        last_hardware_update = time.time()
+        last_db_update = time.time()
+
         while not self.term.is_set():
-            s = time.time()
 
             update_log_file()
 
             reading = self.dht.get_avg()
-            temp, hum = (reading.temp, reading.hum)
-            if temp is None or hum is None:
-                LOGGER.error("ERROR: Failed to read sensor.")
+            if reading is None or reading.temp is None or reading.hum is None:
+                LOGGER.error("ERROR: Failed to read averages from sensor.")
+                self.term.wait(60)
                 continue
-
-            self.plot_points.append(reading)
 
             LOGGER.info(f"{reading}   -   Heater: {self.heater.is_on()}   -   Lamp: {self.lamp.is_on()}")
             LOGGER.debug(f"DHT Reading Buffer: {[str(r) for r in self.dht.get_buffer()]}")
-            LOGGER.debug(f"Graph Point Buffer: {[str(r) for r in self.plot_points.all()]}")
 
-            self.update_devices(reading)
-            self.graph_data(self.plot_points.all())
+            # only update hardware every hardware_interval seconds
+            if time.time() - last_hardware_update > self.hardware_interval:
+                last_hardware_update = time.time()
+                self.update_devices(reading)
 
-            # wait self.update_time seconds, subtracting execution time of loop
-            self.term.wait(self.update_time-(time.time()-s))
+            if time.time() - last_db_update > self.db_interval:
+                last_db_update = time.time()
+                self.dht.post_data(reading)
+
+            # update database every minute
+            self.term.wait(60)
 
         LOGGER.info("Exited main loop.")
 
-    def graph_data(self, data_points):
-        """
-        Graphs climate data to a png file.
-
-        Args:
-            data_points (list): List of Reading objects to plot in a graph.
-        """
-        generate_graphs(data_points, self.heater, self.lamp, self.humidifier, self.graph_location)
 
     def update_devices(self, reading):
         """

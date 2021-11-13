@@ -1,0 +1,12 @@
+[Unit]
+Description=climate controller backend
+After=network.target
+
+[Service]
+User=pi
+WorkingDirectory=/home/pi/terrarium/backend
+ExecStart=/usr/local/bin/pipenv run python manage.py runserver 0.0.0.0:8000
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
