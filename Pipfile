@@ -20,8 +20,8 @@ python_version = "3.7"
 
 ["packages.'RPi.GPIO'"]
 version = "*"
-sys_platform = "=='linux'"
+platform_machine = "=='armv6l'"
 
 ["packages.Adafruit-DHT"]
 version = "*"
-sys_platform = "=='linux'"
+platform_machine = "=='armv6l'"
