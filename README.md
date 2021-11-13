@@ -41,6 +41,6 @@ To configure the program, create a file called config.ini in the root directory,
 4. Copy all .service files from the install/ directory to /etc/systemd/system/
 5. Reload system services: `systemctl daemon-reload`
 6. Each service file is with respect to the frontend, backend, and embedded components. To start them, run the following:
-    - `sudo systemctl start terrarium`
-    - `sudo systemctl start terrarium_front`
-    - `sudo systemctl start terrarium_back`
+    - `sudo systemctl start climate_emb`
+    - `sudo systemctl start climate_front`
+    - `sudo systemctl start climate_back`

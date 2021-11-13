@@ -1,0 +1,12 @@
+[Unit]
+Description=climate controller frontend
+After=network.target
+
+[Service]
+User=pi
+WorkingDirectory=/home/pi/terrarium/frontend
+ExecStart=/usr/local/bin/npm run start
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
