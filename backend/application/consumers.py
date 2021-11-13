@@ -14,7 +14,7 @@ class DataConsumer(AsyncJsonWebsocketConsumer):
         await self.channel_layer.group_add(self.group_name, self.channel_name)
         print(self.group_name, self.channel_name)
 
-        await self.send_json(
+        return await self.send_json(
             {"type": "websocket.accept"}
         )
 
@@ -41,7 +41,7 @@ class DataConsumer(AsyncJsonWebsocketConsumer):
 
         print(f"RESPONDING: {response}")
 
-        await self.channel_layer.group_send(
+        return await self.channel_layer.group_send(
             self.group_name,
             response
         )
