@@ -1,7 +1,7 @@
 import logging
-from datetime import datetime as dt
 
 from .reading import Reading
+from .now import now
 
 LOGGER = logging.getLogger()
 
@@ -26,10 +26,10 @@ class RotatingTimeList:
         Removes all entries that are older than self.duration seconds.
         """
         if len(self.list) > 0:
-            now = dt.now()
+            curr_time = now()
             for t in self.list:
                 entry_time = t.time if isinstance(t, Reading) else t
-                if (now - entry_time).total_seconds() > self.duration:
+                if (curr_time - entry_time).total_seconds() > self.duration:
                     self.list.remove(t)
         return self.list
 
@@ -49,7 +49,7 @@ class RotatingTimeList:
         Args:
             time_entry (Datetime, Reading): Optional. If not present, creates and appends a new datetime object.
         """
-        entry = dt.now() if time_entry is None else time_entry
+        entry = now() if time_entry is None else time_entry
         self.clean()
         self.list.append(entry)
 
