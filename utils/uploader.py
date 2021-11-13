@@ -10,6 +10,8 @@ from .now import now
 
 LOGGER = logging.getLogger()
 
+logging.getLogger("websockets").setLevel(logging.WARNING)
+
 class Database():
 
     def __init__(self, url, user, password):
@@ -20,7 +22,7 @@ class Database():
         self.user = user
         self.password = password
 
-    def send_data(self, data, timeout = 5):
+    def send_data(self, data, timeout = 20):
 
         if "time" not in data.keys():
             data["time"] = str(now())
@@ -59,10 +61,10 @@ class SocketConnector:
         return True
 
     async def send(self, message):
-        if self.ws is None:
-            connected = await self.connect()
-            if not connected:
-                return False
+
+        connected = await self.connect()
+        if not connected:
+            return False
 
         if "time" not in message.keys():
             message["time"] = str(now())
@@ -75,6 +77,7 @@ class SocketConnector:
             )
         )
         LOGGER.debug(f"Sent message over socket: {message}")
+        self.ws.close()
         return True
 
     async def begin_event_loop(self):
