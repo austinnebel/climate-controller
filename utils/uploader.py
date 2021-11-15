@@ -52,6 +52,9 @@ class SocketConnector:
         self.loop = asyncio.get_event_loop()
 
     async def connect(self, close_timeout = 5):
+        if self.ws and self.ws.open:
+            return True
+
         LOGGER.debug(f"Connecting to {self.url}")
         try:
             self.ws = await connect(self.url, close_timeout = close_timeout)
@@ -62,8 +65,7 @@ class SocketConnector:
 
     async def send(self, message):
 
-        connected = await self.connect()
-        if not connected:
+        if not await self.connect():
             return False
 
         if "time" not in message.keys():
@@ -76,9 +78,11 @@ class SocketConnector:
                 }
             )
         )
-        LOGGER.debug(f"Sent message over socket: {message}")
-        self.ws.close()
-        return True
+        r = json.loads(await self.ws.recv())
+        if "type" in r.keys() and r["type"] == "websocket.accept":
+            LOGGER.debug(f"Sent message over socket: {message}")
+            return True
+        return False
 
     async def begin_event_loop(self):
 
