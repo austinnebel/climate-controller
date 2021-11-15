@@ -54,7 +54,13 @@ class Graph extends React.Component {
                     theme={VictoryTheme.material}
                     padding={{ top: 5, bottom: 60, left: 50, right: 50 }}
                     domainPadding={20}
-                    animate={{ duration: 500 }}
+                    animate={{
+                        duration: 1000,
+                        easing: "expInOut",
+                        onEnter: {
+                            duration: 0,
+                        },
+                    }}
                 >
                     <VictoryAxis
                         dependentAxis={true}
