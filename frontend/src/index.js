@@ -22,12 +22,6 @@ function formatDate(date) {
 }
 
 class Graph extends React.Component {
-    async componentDidUpdate(prevProps) {
-        if (this.props.data !== prevProps.climateData) {
-            this.props.fetchData();
-        }
-    }
-
     render() {
         let data = this.props.dataPoints.slice();
         let latest;
