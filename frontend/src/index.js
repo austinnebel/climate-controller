@@ -143,7 +143,7 @@ class Home extends React.Component {
         // reconnects after 10 seconds
         this.updatesSocket.onclose = (e) => {
             console.error("Chat socket closed unexpectedly.");
-            setTimeout(function () {
+            setTimeout(() => {
                 this.initSocket();
             }, 10000);
         };
