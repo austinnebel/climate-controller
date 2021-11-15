@@ -25,13 +25,26 @@ class Graph extends React.Component {
     render() {
         let data = this.props.dataPoints.slice();
         let latest;
-        if (!data) {
-            return null;
+        if (!data.length) {
+            return <div />;
         } else {
             latest = Array(1).fill(data[data.length - 1]);
         }
 
-        console.log(latest);
+        let currPoint;
+        if (latest.length) {
+            currPoint = (
+                <VictoryScatter
+                    style={{
+                        data: { fill: "#c43a31" },
+                        size: 10,
+                    }}
+                    data={latest}
+                    x={this.props.x}
+                    y={this.props.y}
+                />
+            );
+        }
 
         return (
             <div className="graph">
@@ -42,6 +55,15 @@ class Graph extends React.Component {
                     padding={{ top: 5, bottom: 60, left: 50, right: 50 }}
                     domainPadding={20}
                 >
+                    <VictoryAxis
+                        dependentAxis={true}
+                        domain={[60, 100]}
+                        tickFormat={(x) => x + this.props.suffix}
+                    />
+                    <VictoryAxis
+                        fixLabelOverlap={true}
+                        tickFormat={formatDate}
+                    />
                     <VictoryLine
                         style={{
                             data: { stroke: "#c43a31" },
@@ -53,15 +75,7 @@ class Graph extends React.Component {
                         y={this.props.y}
                         name={this.props.name}
                     />
-                    <VictoryAxis
-                        dependentAxis={true}
-                        domain={[60, 100]}
-                        tickFormat={(x) => x + this.props.suffix}
-                    />
-                    <VictoryAxis
-                        fixLabelOverlap={true}
-                        tickFormat={formatDate}
-                    />
+                    {currPoint}
                 </VictoryChart>
             </div>
         );
