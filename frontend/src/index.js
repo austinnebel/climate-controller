@@ -209,7 +209,6 @@ class Home extends React.Component {
                     y="temperature"
                     name="Temperature"
                     suffix="°F"
-                    onUpdate={this.fetchData}
                 />
                 <Graph
                     dataPoints={data}
@@ -217,7 +216,6 @@ class Home extends React.Component {
                     y="humidity"
                     name="Humidity"
                     suffix="%"
-                    onUpdate={this.fetchData}
                 />
             </div>
         );
