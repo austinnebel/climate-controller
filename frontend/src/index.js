@@ -83,7 +83,7 @@ class Graph extends React.Component {
 }
 
 function DataOverview(props) {
-    if (props.data) {
+    if (props.data && Object.keys(props.data).length) {
         return (
             <div>
                 <p className="infoheader">{props.data.temperature + "°F"}</p>
@@ -102,7 +102,7 @@ class Home extends React.Component {
         this.state = {
             climateData: [],
             deviceData: [],
-            currentInfo: {},
+            sockInfo: {},
         };
     }
 
@@ -133,11 +133,10 @@ class Home extends React.Component {
         );
         this.updatesSocket.onmessage = (e) => {
             const data = JSON.parse(e.data);
-
             if (data.type !== "send.json") {
                 return;
             }
-            this.setState({ currentInfo: data.text });
+            this.setState({ sockInfo: data.text });
         };
 
         // reconnects after 10 seconds
@@ -150,27 +149,16 @@ class Home extends React.Component {
     }
 
     latestInfo(history, sockInfo) {
-        // if no data history, return sockInfo
-        if (!history) {
+        // return sockInfo by default if available
+        if (Object.keys(sockInfo).length) {
             return sockInfo;
         }
-        let latestHistory = history[history.length - 1];
-        // if sockInfo is undefined, return latest history
-        if (!sockInfo.time) {
-            if (!latestHistory) {
-                return null;
-            }
-            return latestHistory;
-        }
 
-        // get most recent date
-        let historyTime = new Date(latestHistory.time);
-        let sockTime = new Date(sockInfo.time);
-
-        if (sockTime > historyTime) {
-            return sockInfo;
+        // if history also not available, do nothing, return null
+        if (!history.length) {
+            return null;
         }
-        return latestHistory;
+        return history[history.length - 1];
     }
 
     componentDidMount() {
@@ -187,9 +175,7 @@ class Home extends React.Component {
 
     render() {
         let data = this.state.climateData.slice();
-        let currData = this.latestInfo(data, this.state.currentInfo);
-
-        console.log(data);
+        let currData = this.latestInfo(data, this.state.sockInfo);
 
         if (currData) {
             data.push(currData);
