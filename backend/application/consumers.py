@@ -6,11 +6,15 @@ from django.conf import settings
 
 class DataConsumer(AsyncJsonWebsocketConsumer):
     async def connect(self):
+        """
+        Called upon websocket connection.
+        """
 
         await self.accept()
         self.user = self.scope["user"]
         self.group_name = f"data-client"
 
+        # adds this channel to the data-client group
         await self.channel_layer.group_add(self.group_name, self.channel_name)
         print(self.group_name, self.channel_name)
 
@@ -20,8 +24,15 @@ class DataConsumer(AsyncJsonWebsocketConsumer):
 
     async def receive_json(self, content):
         """
-        Receive a message and broadcast it to connected clients.
+        Receives a JSON-like text object and sends it to all channels in the data-client group.
+        This method is accessed by passing type: receive.json to the websocket.
+
+        NOTE: Normally, content would be text, but AsyncJsonWebsocketConsumer does automatic conversions.
+
+        Args:
+            content (dict): JSON content to publish.
         """
+
         """if self.scope["user"].is_anonymous:
             await self.close()
             return"""
@@ -34,6 +45,7 @@ class DataConsumer(AsyncJsonWebsocketConsumer):
             parsed = parse_datetime(message["time"])
             message["time"] = parsed.strftime(format)
 
+        # type: send.json will cause group_send to call the inherited send_json method
         response = {
                 "type": "send.json",
                 "text": message
