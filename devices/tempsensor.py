@@ -94,7 +94,7 @@ class TempSensor(Thread):
             "humidity": reading.hum,
             "time": str(reading.time)
         }
-        self.sock.send_data(json)
+        self.sock.send(json)
 
     def get_buffer(self):
         """

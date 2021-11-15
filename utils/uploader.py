@@ -63,7 +63,7 @@ class SocketConnector:
             return False
         return True
 
-    async def send(self, message):
+    async def _send(self, message):
 
         if not await self.connect():
             return False
@@ -94,6 +94,6 @@ class SocketConnector:
     def start(self):
         asyncio.run(self.begin_event_loop())
 
-    def send_data(self, data, timeout = 5):
-        return self.loop.run_until_complete(self.send(data))
+    def send(self, data, timeout = 5):
+        return self.loop.run_until_complete(self._send(data))
 
