@@ -87,12 +87,16 @@ class SocketConnector:
     async def begin_event_loop(self):
 
         while True:
-            while not self.queue.empty():
-                await self.send(self.queue.popleft())
+            while not self.message_queue.empty():
+                await self._send(self.message_queue.popleft())
             asyncio.sleep(1)
 
     def start(self):
         asyncio.run(self.begin_event_loop())
+
+    def stop(self):
+        if self.ws is not None:
+            self.ws.close()
 
     def send(self, data, timeout = 5):
         return self.loop.run_until_complete(self._send(data))
