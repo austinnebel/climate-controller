@@ -21,72 +21,62 @@ function formatDate(date) {
         .replace(/\s+/g, "");
 }
 
-class Graph extends React.Component {
-    render() {
-        let data = this.props.dataPoints.slice();
-        let latest;
-        if (!data.length) {
-            return <div />;
-        } else {
-            latest = Array(1).fill(data[data.length - 1]);
-        }
+function Graph(props) {
+    if (!props.dataPoints.length) {
+        return <div />;
+    }
 
-        let currPoint;
-        if (latest.length) {
-            currPoint = (
+    console.log("Graphing " + props.dataPoints.length + " points.");
+    const animation = {
+        duration: 300,
+        easing: "expInOut",
+    };
+    const lineColor = "#c43a31";
+    const mostRecent = Array(1).fill(
+        props.dataPoints[props.dataPoints.length - 1]
+    );
+
+    return (
+        <div className="graph">
+            <p className="graphheader">{props.name}</p>
+
+            <VictoryChart
+                theme={VictoryTheme.material}
+                padding={{ top: 5, bottom: 60, left: 50, right: 5 }}
+                domainPadding={{ x: [1000, 0], y: [10, 10] }}
+                domain={{ y: [60, 100] }}
+                scale={{ x: "time", y: "linear" }}
+            >
+                <VictoryAxis
+                    dependentAxis={true}
+                    tickFormat={(x) => x + props.suffix}
+                />
+                <VictoryAxis fixLabelOverlap={true} tickFormat={formatDate} />
+
+                <VictoryLine
+                    style={{
+                        data: { stroke: lineColor },
+                    }}
+                    data={props.dataPoints}
+                    interpolation="catmullRom"
+                    x={props.x}
+                    y={props.y}
+                    animate={animation}
+                />
+
                 <VictoryScatter
                     style={{
-                        data: { fill: "#c43a31" },
+                        data: { fill: lineColor },
                         size: 10,
                     }}
-                    data={latest}
-                    x={this.props.x}
-                    y={this.props.y}
+                    data={mostRecent}
+                    x={props.x}
+                    y={props.y}
+                    animate={animation}
                 />
-            );
-        }
-
-        return (
-            <div className="graph">
-                <p className="graphheader">{this.props.name}</p>
-
-                <VictoryChart
-                    theme={VictoryTheme.material}
-                    padding={{ top: 5, bottom: 60, left: 50, right: 50 }}
-                    domainPadding={20}
-                    animate={{
-                        duration: 1000,
-                        easing: "expInOut",
-                        onEnter: {
-                            duration: 0,
-                        },
-                    }}
-                >
-                    <VictoryAxis
-                        dependentAxis={true}
-                        domain={[60, 100]}
-                        tickFormat={(x) => x + this.props.suffix}
-                    />
-                    <VictoryAxis
-                        fixLabelOverlap={true}
-                        tickFormat={formatDate}
-                    />
-                    <VictoryLine
-                        style={{
-                            data: { stroke: "#c43a31" },
-                            parent: { border: "1px solid #ccc" },
-                        }}
-                        data={data}
-                        interpolation="catmullRom"
-                        x={this.props.x}
-                        y={this.props.y}
-                        name={this.props.name}
-                    />
-                    {currPoint}
-                </VictoryChart>
-            </div>
-        );
-    }
+            </VictoryChart>
+        </div>
+    );
 }
 
 function DataOverview(props) {
