@@ -95,7 +95,7 @@ function DataOverview(props) {
             <div>
                 <p className="infoheader">{props.data.temperature + "°F"}</p>
                 <p className="infoheader">{props.data.humidity + "%"}</p>
-                <p className="infosubheader">{props.data.time}</p>
+                <p className="infosubheader">{formatDate(props.data.time)}</p>
             </div>
         );
     } else {
