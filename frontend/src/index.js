@@ -41,7 +41,8 @@ function Graph(props) {
         duration: 300,
         easing: "expInOut",
     };
-    const lineColor = "#c43a31";
+    const lineColor = "#e43124";
+    const pointColor = "#eb3124";
     const mostRecent = Array(1).fill(
         props.dataPoints[props.dataPoints.length - 1]
     );
@@ -76,7 +77,7 @@ function Graph(props) {
 
                 <VictoryScatter
                     style={{
-                        data: { fill: lineColor },
+                        data: { fill: pointColor },
                         size: 10,
                     }}
                     data={mostRecent}
@@ -190,8 +191,8 @@ class Home extends React.Component {
 
         return (
             <div className="container">
-                <div className="header">
-                    <h1>Terrarium</h1>
+                <div className="title-background">
+                    <h1 className="page-title"> Terrarium</h1>
                 </div>
                 <h1 className="contentheader">Climate</h1>
                 <DataOverview data={currData} />

@@ -1,3 +1,7 @@
+:root {
+    --main-color: #eb3124;
+}
+
 /* Style the body */
 body {
     font-family: Arial;
@@ -5,12 +9,20 @@ body {
 }
 
 /* Header/Logo Title */
-.header {
-    padding: 20px;
+.page-title {
+    margin-top: 0;
+    margin-bottom: 0;
+    padding: 10px;
+}
+
+.title-background {
+    padding: 5px;
     text-align: center;
-    background: #30a3bd;
-    color: white;
+    background: var(--main-color);
+    color: rgb(231, 231, 231);
     font-size: 20px;
+    margin-top: 10;
+    margin-bottom: 10;
 }
 
 /* Page Info Header */
@@ -38,7 +50,7 @@ body {
     padding: 0px;
     margin-bottom: 20px;
     padding-bottom: 0px;
-    color: #30a3bd;
+    color: var(--main-color);
     border-bottom: solid;
 }
 
