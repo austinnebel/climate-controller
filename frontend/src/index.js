@@ -13,12 +13,22 @@ import "./index.css";
 const SERVER = "nebelaustin.tplinkdns.com:4585";
 
 function formatDate(date) {
-    return new Date(date)
-        .toLocaleTimeString([], {
-            hour: "2-digit",
-            minute: "2-digit",
-        })
-        .replace(/\s+/g, "");
+    if (date instanceof Date || typeof date === "string") {
+        return new Date(date)
+            .toLocaleTimeString([], {
+                hour: "2-digit",
+                minute: "2-digit",
+            })
+            .replace(/\s+/g, "");
+    } else {
+        console.log(
+            "Received invalid date to format: " +
+                date +
+                " of type " +
+                typeof date
+        );
+    }
+}
 }
 
 function Graph(props) {
