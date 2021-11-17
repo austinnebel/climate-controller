@@ -1,6 +1,7 @@
 import React from "react";
 import ReactDOM from "react-dom";
 import axios from "axios";
+import PropTypes from "prop-types";
 import {
     VictoryChart,
     VictoryLine,
@@ -12,6 +13,12 @@ import "./index.css";
 
 const SERVER = "nebelaustin.tplinkdns.com:4585";
 
+/**
+ * Parses a Date or string object into a string of format HH:MM AM/PM
+ *
+ * @param {Date | string} date Parses a Date object into a string of format HH:MM AM/PM
+ * @returns string
+ */
 function formatDate(date) {
     if (date instanceof Date || typeof date === "string") {
         return new Date(date)
@@ -29,6 +36,25 @@ function formatDate(date) {
         );
     }
 }
+
+/**
+ * Converts an objects time property into a Date object.
+ *
+ * If the object does not have a time property, returns the object.
+ *
+ * @param {Object} obj Object to evaluate.
+ * @returns Object
+ */
+function parseDate(obj) {
+    if ("time" in obj && typeof obj.time === "string") {
+        obj.time = new Date(obj.time);
+    }
+    return obj;
+}
+function parseAllDates(list) {
+    return list.map((i) => parseDate(i));
+}
+
 }
 
 function Graph(props) {
@@ -89,6 +115,19 @@ function Graph(props) {
         </div>
     );
 }
+Graph.propTypes = {
+    dataPoints: PropTypes.arrayOf(
+        PropTypes.shape({
+            time: PropTypes.string.isRequired,
+            temperature: PropTypes.number.isRequired,
+            humidity: PropTypes.number.isRequired,
+        })
+    ).isRequired,
+    x: PropTypes.string,
+    y: PropTypes.string.isRequired,
+    name: PropTypes.string,
+    suffix: PropTypes.string,
+};
 
 function DataOverview(props) {
     if (props.data && Object.keys(props.data).length) {
