@@ -2,6 +2,7 @@ import React from "react";
 import ReactDOM from "react-dom";
 import axios from "axios";
 import PropTypes from "prop-types";
+import { TailSpin } from "react-loading-icons";
 import {
     VictoryChart,
     VictoryLine,
@@ -55,6 +56,8 @@ function parseAllDates(list) {
     return list.map((i) => parseDate(i));
 }
 
+function Loading() {
+    return <TailSpin stroke="black" className="graph" />;
 }
 
 function Graph(props) {
@@ -139,10 +142,36 @@ function DataOverview(props) {
             </div>
         );
     } else {
-        return <div></div>;
+        return <Loading />;
     }
 }
 
+function GraphContainer(props) {
+    const data = props.data;
+
+    if (data.length > 0) {
+        return (
+            <div>
+                <Graph
+                    dataPoints={data}
+                    x="time"
+                    y="temperature"
+                    name="Temperature"
+                    suffix="°F"
+                />
+                <Graph
+                    dataPoints={data}
+                    x="time"
+                    y="humidity"
+                    name="Humidity"
+                    suffix="%"
+                />
+            </div>
+        );
+    } else {
+        return <Loading />;
+    }
+}
 class Home extends React.Component {
     constructor(props) {
         super(props);
@@ -233,23 +262,12 @@ class Home extends React.Component {
                 <div className="title-background">
                     <h1 className="page-title"> Terrarium</h1>
                 </div>
+
                 <h1 className="contentheader">Climate</h1>
                 <DataOverview data={currData} />
+
                 <h1 className="contentheader">Statistics</h1>
-                <Graph
-                    dataPoints={data}
-                    x="time"
-                    y="temperature"
-                    name="Temperature"
-                    suffix="°F"
-                />
-                <Graph
-                    dataPoints={data}
-                    x="time"
-                    y="humidity"
-                    name="Humidity"
-                    suffix="%"
-                />
+                <GraphContainer data={data} />
             </div>
         );
     }
