@@ -61,24 +61,24 @@ function Loading() {
 }
 
 function Graph(props) {
-    if (!props.dataPoints.length) {
-        return <div />;
+    const { x, y, dataPoints, suffix, name } = props;
+
+    if (!dataPoints.length) {
+        return null;
     }
 
-    console.log("Graphing " + props.dataPoints.length + " points.");
+    console.log("Graphing " + dataPoints.length + " points.");
     const animation = {
         duration: 300,
         easing: "expInOut",
     };
     const lineColor = "#e43124";
     const pointColor = "#eb3124";
-    const mostRecent = Array(1).fill(
-        props.dataPoints[props.dataPoints.length - 1]
-    );
+    const mostRecent = Array(1).fill(dataPoints[dataPoints.length - 1]);
 
     return (
         <div className="graph">
-            <p className="graphheader">{props.name}</p>
+            <p className="graphheader">{name}</p>
 
             <VictoryChart
                 theme={VictoryTheme.material}
@@ -89,7 +89,7 @@ function Graph(props) {
             >
                 <VictoryAxis
                     dependentAxis={true}
-                    tickFormat={(x) => x + props.suffix}
+                    tickFormat={(x) => x + suffix}
                 />
                 <VictoryAxis fixLabelOverlap={true} tickFormat={formatDate} />
 
@@ -97,10 +97,10 @@ function Graph(props) {
                     style={{
                         data: { stroke: lineColor },
                     }}
-                    data={props.dataPoints}
+                    data={dataPoints}
                     interpolation="catmullRom"
-                    x={props.x}
-                    y={props.y}
+                    x={x}
+                    y={y}
                     animate={animation}
                 />
 
@@ -110,8 +110,8 @@ function Graph(props) {
                         size: 10,
                     }}
                     data={mostRecent}
-                    x={props.x}
-                    y={props.y}
+                    x={x}
+                    y={y}
                     animate={animation}
                 />
             </VictoryChart>
