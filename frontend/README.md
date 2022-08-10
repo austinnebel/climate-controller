@@ -1,10 +1,8 @@
-# Getting Started with Create React App
+# Climate Controller Frontend
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+This is the frontend of the climate controller. The frontend is built with React and typescript.
 
-## Available Scripts
-
-In the project directory, you can run:
+## React Scripts
 
 ### `npm start`
 
