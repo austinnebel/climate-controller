@@ -3,6 +3,7 @@ import datetime
 import Adafruit_DHT
 
 from threading import Thread, Event
+from embedded.utils.uploader import Database, SocketConnector
 
 from utils import Reading
 
@@ -10,13 +11,15 @@ LOGGER = logging.getLogger()
 
 class TempSensor(Thread):
 
-    def __init__(self, pin, db, sock, use_fahrenheit = True, buffer_duration = 30):
+    def __init__(self, pin: int, db: Database, sock: SocketConnector, use_fahrenheit = True, buffer_duration = 30):
         """
         Continuously captures temperature and humidity data from DHT22. This class
         can be instantiated, and then run as a thread using its run() method.
 
         Args:
             pin (int): GPIO data pin for DHT sensor.
+            db (Database): `Database` object to use to publish data.
+            sock (SocketConnector): `SocketConnector` object to use to post real-time data.
             use_fahrenheit (bool, optional): If True, uses fahrenheit units, else uses Celsius. Defaults to True.
             buffer_duration (int, optional): How many seconds of history should be contained in the reading buffer. Defaults to 30.
         """
@@ -33,6 +36,9 @@ class TempSensor(Thread):
         self.term = Event()
 
     def available(self):
+        """
+        Returns true if the data buffer is full of data.
+        """
         return len(self.reading_buff.all()) > 0
 
     def get_avg(self):

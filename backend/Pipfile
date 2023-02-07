@@ -1,0 +1,19 @@
+[[source]]
+url = "https://pypi.org/simple"
+verify_ssl = true
+name = "pypi"
+
+[packages]
+Django = "*"
+djangorestframework = "*"
+django-cors-headers = "*"
+requests = "*"
+channels = "*"
+channels-redis = "*"
+asyncio = "*"
+websockets = "*"
+
+[dev-packages]
+
+[requires]
+python_version = "3.7"

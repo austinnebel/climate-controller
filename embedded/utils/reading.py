@@ -2,7 +2,6 @@ from .now import now
 
 
 class Reading:
-
     def __init__(self, temp, hum, time = None, convert = True, repr_fahrenheit = True):
         """
          Holds temperature and humidity data, as well as the time of data capture.
