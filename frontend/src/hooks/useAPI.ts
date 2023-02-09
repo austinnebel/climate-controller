@@ -1,81 +1,132 @@
-import axios from "axios";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { ClimateData, DeviceData } from "api/types";
+import axios, { AxiosResponse } from "axios";
+import { useCallback, useEffect, useState } from "react";
 
-export type ClimateData = {
-    /** Time of data capture. */
-    time: string;
-    /** Recorded temperature. */
-    temperature: number;
-    /** Humidity levels in percentage. */
-    humidity: number;
-};
-
-export const useAPI = (server: string) => {
-    const [climateData, setClimateData] = useState<ClimateData[]>([]);
-    const [deviceData, setDeviceData] = useState<any[]>([]);
-    const dataWS = useRef<WebSocket>();
+/**
+ * Connects a websocket to `url` and calls `onMessage` each time a message
+ * is received.
+ *
+ * This will attempt to keep the websocket alive i.e. if the connection fails,
+ * a new connection attempt will be made after 10 seconds.
+ */
+const useWebsocket = <T>(url: string, onMessage: (data: T) => void) => {
+    const [socket, setSocket] = useState<WebSocket>();
 
     /**
-     * Initializes a websocket connection to the server and updates the state.
+     * Creates a websocket to `url`.
      */
-    const initSocket = useCallback(() => {
-        dataWS.current = new WebSocket(`ws://` + server + `/ws/currentData/`);
-        dataWS.current.onmessage = (e) => {
-            const data = JSON.parse(e.data);
+    const create = useCallback(() => new WebSocket(url), [url]);
+
+    /**
+     * Called when the websocket unexpectedly closes. This will try to
+     * reopen the socket after 10 seconds.
+     */
+    const _onClose = useCallback(
+        (e: CloseEvent) => {
+            console.error("Chat socket closed unexpectedly. ", e);
+            setTimeout(create, 10000);
+        },
+        [create]
+    );
+
+    /**
+     * Called when the websocket receives a message. This automatically parses the text
+     * received into JSON.
+     */
+    const _onMessage = useCallback(
+        (message: MessageEvent) => {
+            const data = JSON.parse(message.data);
             if (!data || data.type !== "send.json") {
                 return;
             }
-            setClimateData([...climateData, data.text]);
-        };
+            onMessage(data.text);
+        },
+        [onMessage]
+    );
+
+    /**
+     * Creates the socket on mount, updates state, and adds an `onClose`
+     * event listener.
+     *
+     * On unmount, this removes the `onClose` event listener and closes the socket.
+     */
+    useEffect(() => {
+        const dataSocket = create();
+        setSocket(dataSocket);
 
         // reconnects after 10 seconds
-        dataWS.current.onclose = (e) => {
-            console.error("Chat socket closed unexpectedly.");
-            setTimeout(() => {
-                initSocket();
-            }, 10000);
-        };
-    }, [server, climateData]);
-
-    // fetch data history on mount. Socket will update afterwards
-    useEffect(() => {
-        axios
-            .get("http://" + server + "/api/data/")
-            .then((data) => {
-                if (data.status === 200) {
-                    setClimateData(data.data as ClimateData[]);
-                }
-            })
-            .catch((err) => {
-                console.log(err);
-            });
-
-        axios
-            .get("http://" + server + "/api/device/")
-            .then((data) => {
-                if (data.status === 200) {
-                    setDeviceData(data.data);
-                }
-            })
-            .catch((err) => {
-                console.log(err);
-            });
-    }, [server]);
-
-    // initializes the websocket and closes it on unmount
-    useEffect(() => {
-        initSocket();
+        dataSocket.addEventListener("close", _onClose);
+        dataSocket.addEventListener("message", _onMessage);
 
         return () => {
-            if (!dataWS.current) return;
-
-            dataWS.current.onclose = null;
-            dataWS.current.close();
+            dataSocket.removeEventListener("close", _onClose);
+            dataSocket.removeEventListener("message", _onMessage);
+            dataSocket.close();
         };
-    }, [initSocket]);
+    }, [create, _onClose, _onMessage]);
 
-    return {
-        climateData,
-        deviceData,
-    };
+    return socket;
+};
+
+/**
+ * Fetches data from `url` and calls `onFetch` once data is received,
+ * or `onError` if an error occurs.
+ */
+const useFetch = <T>(
+    url: string,
+    onFetch: (data: AxiosResponse<T>) => void,
+    onError?: (reason: any) => void
+) => {
+    useEffect(() => {
+        axios
+            .get(url)
+            .then((data) => {
+                console.log("Fetched from ", url, data);
+                onFetch(data);
+            })
+            .catch(onError);
+    }, [url, onFetch, onError]);
+};
+
+/**
+ * Returns climate data history as well as real-time climate information.
+ */
+export const useClimateData = (server: string) => {
+    const [climateData, setClimateData] = useState<ClimateData[]>([]);
+
+    /** Fetches climate data history. */
+    useFetch<ClimateData[]>(
+        `http://${server}/api/data/`,
+        useCallback(
+            (data) => setClimateData((oldData) => [...oldData, ...data.data]),
+            []
+        )
+    );
+
+    /**
+     * Connect to real-time data socket and
+     */
+    useWebsocket<ClimateData>(
+        `ws://${server}/ws/currentData/`,
+        useCallback(
+            (data) => setClimateData((oldData) => [...oldData, data]),
+            []
+        )
+    );
+
+    return climateData;
+};
+
+export const useDeviceData = (server: string) => {
+    const [currentDeviceData, setCurrentDeviceData] = useState<any[]>([]);
+
+    /** Fetches device information history. */
+    useFetch<DeviceData[]>(
+        `http://${server}/api/device/`,
+        useCallback((data) => {
+            setCurrentDeviceData((oldData) => [...oldData, ...data.data]);
+        }, [])
+    );
+
+    return currentDeviceData;
 };

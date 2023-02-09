@@ -1,14 +1,9 @@
-import { ClimateData } from "hooks/useAPI";
-import React from "react";
-import DataGraph from "./DataGraph";
-import LoadingIndicator from "./LoadingIndicator";
+import { ClimateData } from "api/types";
+import { AppSection, DataGraph } from "components";
 
-export const GraphContainer = ({ data }: { data?: ClimateData[] }) => {
-    if (!data?.length) {
-        return <LoadingIndicator />;
-    }
+export const DataGraphSection = ({ data }: { data: ClimateData[] }) => {
     return (
-        <>
+        <AppSection heading="History">
             <DataGraph
                 data={data}
                 x="time"
@@ -23,8 +18,6 @@ export const GraphContainer = ({ data }: { data?: ClimateData[] }) => {
                 name="Humidity"
                 suffix="%"
             />
-        </>
+        </AppSection>
     );
 };
-
-export default GraphContainer;
