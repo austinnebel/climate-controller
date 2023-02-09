@@ -9,38 +9,58 @@ import {
 } from "victory";
 import LoadingIndicator from "./LoadingIndicator";
 
-type DataGraphProps = {
-    /** Key in `data` to be used as the x-axis. */
-    x: string;
-    /** Key in `data` to be used as the y-axis. */
-    y: string;
+/**
+ * Displays a graph of various data types.
+ *
+ * The type parameter `T` is what data will be shown in the graph.
+ * It is the same type that each element in the `data` prop should be.
+ */
+export const DataGraph = <T extends Record<string, any>>({
+    x,
+    y,
+    data,
+    suffix,
+    name,
+}: {
     /** Data objects to graph. */
-    data: any[];
+    data: T[];
+    /** Key in `T` to be used as the x-axis. */
+    x: keyof T extends string ? keyof T : never;
+    /** Key in `T` to be used as the y-axis. */
+    y: keyof T extends string ? keyof T : never;
     /** Suffix to add to y-axis elements, */
     suffix: string;
     /** Graph display name. */
     name: string;
-};
-/**
- * Displays a graph of various data types.
- */
-export const DataGraph = ({ x, y, data, suffix, name }: DataGraphProps) => {
+}) => {
     const theme = useTheme();
 
-    if (!data.length) {
+    if (!data || data.length === 0) {
         return <LoadingIndicator />;
     }
 
+    const convertTimes = data.map((elem) => {
+        return {
+            ...elem,
+            time: new Date(elem.time),
+        };
+    });
+
     return (
-        <Container>
-            <Typography className="graphheader">{name}</Typography>
+        <Container style={{ padding: 0 }}>
+            <Typography className="graphheader" style={{ textAlign: "center" }}>
+                {name}
+            </Typography>
 
             <VictoryChart
                 theme={VictoryTheme.material}
                 padding={{ top: 5, bottom: 60, left: 50, right: 5 }}
-                domainPadding={{ x: [1000, 0], y: [10, 10] }}
-                domain={{ y: [60, 100] }}
+                domainPadding={{ x: [0, 0], y: [10, 10] }}
+                domain={{ y: [50, 100] }}
                 scale={{ x: "time", y: "linear" }}
+                animate={{
+                    duration: 500,
+                }}
             >
                 <VictoryAxis
                     dependentAxis={true}
@@ -52,12 +72,12 @@ export const DataGraph = ({ x, y, data, suffix, name }: DataGraphProps) => {
                     style={{
                         data: { stroke: theme.palette.primary.main },
                     }}
-                    data={data}
+                    data={convertTimes}
                     interpolation="catmullRom"
                     x={x}
                     y={y}
                     animate={{
-                        duration: 300,
+                        duration: 250,
                         easing: "expInOut",
                     }}
                 />
@@ -66,11 +86,11 @@ export const DataGraph = ({ x, y, data, suffix, name }: DataGraphProps) => {
                     style={{
                         data: { fill: theme.palette.primary.main },
                     }}
-                    data={[data[data.length - 1]]}
+                    data={[convertTimes[convertTimes.length - 1]]}
                     x={x}
                     y={y}
                     animate={{
-                        duration: 300,
+                        duration: 250,
                         easing: "expInOut",
                     }}
                 />
