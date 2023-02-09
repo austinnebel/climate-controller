@@ -11,8 +11,10 @@ export const AppSection = ({
     heading: string;
 }) => {
     return (
-        <Container style={{ marginBottom: "24px", padding: 0 }}>
-            <Typography variant="h4">{heading}</Typography>
+        <Container style={{ marginBottom: "12px", padding: 0 }}>
+            <Typography variant="h4" style={{ textAlign: "center" }}>
+                {heading}
+            </Typography>
             <Divider style={{ width: "100%", marginBottom: "12px" }} />
             {children}
         </Container>
