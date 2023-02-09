@@ -1,17 +1,20 @@
 from datetime import datetime
 import logging
+
+from utils import Database
 from .relay import Relay
 
 LOGGER = logging.getLogger()
 
 class Heater:
 
-    def __init__(self, pin, db, name = "Heater", normally_closed = True):
+    def __init__(self, pin: int, db: Database, name = "Heater", normally_closed = True):
         """
         Controls a heating device.
 
         Args:
             pin (int): GPIO pin to activate the heater.
+            database (Database): Database object to upload data to.
             normally_closed (bool, optional): If True, the relay for this device is normally closed i.e. turns off when its GPIO is activated.
                                               If False, the relay for this device is normally open i.e. turns on when its GPIO is activated.
                                               Defaults to True.

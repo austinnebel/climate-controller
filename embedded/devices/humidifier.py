@@ -1,21 +1,22 @@
 import logging
-from datetime import datetime as dt
 from time import sleep
 from threading import Thread
 from datetime import datetime
+
+from utils import Database
 from .relay import Relay
 
 LOGGER = logging.getLogger()
 
 class Humidifier:
 
-    def __init__(self, pin, db):
+    def __init__(self, pin: int, db: Database):
         """
-        Class to control humidifer device.
+        Class to control humidifier device.
 
         Args:
             pin (int): GPIO pin used to activate humidifier.
-            db (utils.Database): Database to post activation events to.
+            db (Database): Database to post activation events to.
         """
         # humidifier should default to off
         self.relay = Relay(pin, normally_closed = False)

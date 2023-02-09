@@ -3,6 +3,8 @@ import requests
 import json
 import asyncio
 from queue import Queue
+from config import Config
+from utils.reading import Reading
 from websockets import connect
 
 from .now import now
@@ -14,21 +16,47 @@ logging.getLogger("websockets").setLevel(logging.WARNING)
 
 class Database():
 
-    def __init__(self, url, user, password):
+    def __init__(self, config: Config):
         """
         Utility for posting data to the local database server.
         """
-        self.url = url
-        self.user = user
-        self.password = password
+        self.config = config
+        """ Application configuration. """
 
-    def send_data(self, data, timeout = 20):
+        self.http_url = f"http://{config.server_hostname}:{config.server_port}"
+        """ HTTP URL to the database. """
 
+        self.ws_url = f"ws://{config.server_hostname}:{config.server_port}"
+        """ Websocket URL to the database. """
+
+        self.user = config.user
+        """ Database Username. """
+
+        self.password = config.password
+        """ Database Password. """
+
+        self.websocket = SocketConnector(self.ws_url + config.socket_endpoint, config.user, config.password)
+        """ Database websocket connection. """
+
+    def send_climate_data(self, data: Reading):
+        self.__send_data(data, self.config.climate_endpoint)
+
+    def send_device_data(self, data):
+        self.__send_data(data, self.config.device_endpoint)
+
+    def send_climate_data_websocket(self, data: Reading):
+        self.websocket.send(data)
+
+    def __send_data(self, data, endpoint, timeout = 20):
+        """
+        Makes a post request containing `data` to the database
+        server at the specified `endpoint`.
+        """
         if "time" not in data.keys():
             data["time"] = str(now())
 
         try:
-            r = requests.post(self.url, timeout = timeout, json = data, auth = (self.user, self.password))
+            r = requests.post(self.http_url + endpoint, timeout = timeout, json = data, auth = (self.user, self.password))
         except Exception as e:
             LOGGER.error(f"Failed to update database. Error: {e}")
             return False
@@ -94,9 +122,9 @@ class SocketConnector:
     def start(self):
         asyncio.run(self.begin_event_loop())
 
-    def stop(self):
+    async def stop(self):
         if self.ws is not None:
-            self.ws.close()
+            await self.ws.close()
 
     def send(self, data, timeout = 5):
         return self.loop.run_until_complete(self._send(data))

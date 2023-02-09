@@ -1,8 +1,9 @@
 import logging
 
-from datetime import datetime as dt
 from time import sleep
 from threading import Thread
+
+from utils import Database
 
 from .relay import Relay
 
@@ -11,13 +12,13 @@ LOGGER = logging.getLogger()
 
 class RelayDevice:
 
-    def __init__(self, pin, database, name = "Device", normally_closed = True):
+    def __init__(self, pin: int, database: Database, name = "Device", normally_closed = True):
         """
         Class to control a relay-controlled device.
 
         Args:
             pin (int): GPIO pin used to activate relay that powers the device.
-            databse (utils.Database): Databse object to upload data to.
+            database (Database): Database object to upload data to.
             normally_closed (bool, optional): If True, the relay for this device is normally closed i.e. turns off when its GPIO is activated.
                                     If False, the relay for this device is normally open i.e. turns on when its GPIO is activated.
                                     Defaults to True.
@@ -38,7 +39,7 @@ class RelayDevice:
             "device": self.name,
             "event": event,
         }
-        self.db.send_data(data)
+        self.db.send_device_data(data)
 
     def on(self):
         """
@@ -60,7 +61,7 @@ class RelayDevice:
 
     def _activate_timed(self, activation_time):
         """
-        Activates the device for activation_time seconds.
+        Activates the device for `activation_time` seconds.
         """
         self.on()
         sleep(activation_time)
@@ -68,7 +69,7 @@ class RelayDevice:
 
     def on_timed(self, activation_time):
         """
-        Activates the device for activation_time seconds in a separate thread.
+        Activates the device for `activation_time` seconds in a separate thread.
         """
         t = Thread(target = self._activate_timed, args = [activation_time])
         t.start()

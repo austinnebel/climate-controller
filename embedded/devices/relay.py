@@ -1,6 +1,6 @@
 import atexit
 import logging
-import RPi.GPIO as GPIO
+from conditional_dependencies.gpio import GPIO
 
 LOGGER = logging.getLogger()
 GPIO.setmode(GPIO.BCM)

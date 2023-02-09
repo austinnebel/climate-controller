@@ -1,17 +1,14 @@
 import logging
-import datetime
-import Adafruit_DHT
 
 from threading import Thread, Event
-from embedded.utils.uploader import Database, SocketConnector
-
-from utils import Reading
+from utils import Reading, Database, SocketConnector
+from conditional_dependencies.adafruit_dht import Adafruit_DHT
 
 LOGGER = logging.getLogger()
 
 class TempSensor(Thread):
 
-    def __init__(self, pin: int, db: Database, sock: SocketConnector, use_fahrenheit = True, buffer_duration = 30):
+    def __init__(self, pin: int, db: Database, use_fahrenheit = True, buffer_duration = 30):
         """
         Continuously captures temperature and humidity data from DHT22. This class
         can be instantiated, and then run as a thread using its run() method.
@@ -19,21 +16,35 @@ class TempSensor(Thread):
         Args:
             pin (int): GPIO data pin for DHT sensor.
             db (Database): `Database` object to use to publish data.
-            sock (SocketConnector): `SocketConnector` object to use to post real-time data.
             use_fahrenheit (bool, optional): If True, uses fahrenheit units, else uses Celsius. Defaults to True.
             buffer_duration (int, optional): How many seconds of history should be contained in the reading buffer. Defaults to 30.
         """
         Thread.__init__(self)
-        from utils import RotatingTimeList
+        from utils import ReadingBuffer
 
         self.daemon = True
+        """
+        Sets this thread in `daemon` mode. This makes the thread forcibly
+        shutdown when no non-daemon threads are left. See more: https://docs.python.org/3/library/threading.html#thread-objects
+        """
+
         self.sensor = Adafruit_DHT.DHT22
+        """ The `DHT22` sensor object."""
+
         self.pin = pin
-        self.reading_buff = RotatingTimeList(buffer_duration)
+        """ The GPIO pin used to read from the sensor."""
+
+        self.reading_buff = ReadingBuffer(buffer_duration)
+        """ A reading buffer that will only hold readings that are less than `buffer_duration` old. """
+
         self.use_fahrenheit = use_fahrenheit
+        """ If true, Celsius readings are converted to fahrenheit. """
+
         self.db = db
-        self.sock = sock
+        """ Database instance to send data to. """
+
         self.term = Event()
+        """ Used to terminate this thread. """
 
     def available(self):
         """
@@ -58,56 +69,46 @@ class TempSensor(Thread):
             t_avg = sum([r.temp for r in buff])/buff_size
             h_avg = sum([r.hum for r in buff])/buff_size
 
-            return Reading(t_avg, h_avg, time = latest.time, convert = False, repr_fahrenheit = self.use_fahrenheit)
+            return Reading(t_avg, h_avg, time = latest.time, convert = False, is_fahrenheit=True)
         return None
 
-    def add_reading(self, reading : Reading):
+    def add_to_buffer(self, reading : Reading):
         """
-        Adds a Reading object to the reading buffer. If temperature or humidity is None,
-        no entry is added, but the buffer is cleaned to avoid old entries from being removed.
+        Adds a Reading object to the reading buffer. If the Reading, its temperature or its humidity is None,
+        no entry is added, but the buffer is cleaned to avoid old entries from not being removed.
 
         Args:
             reading (Reading): Reading object captured from sensor.
         """
-        if reading.temp is None or reading.hum is None:
-            self.reading_buff.clean()
+        if reading is None or reading.temp is None or reading.hum is None:
+            self.reading_buff.remove_old_entries()
             return
         self.reading_buff.append(reading)
 
-    def post_data(self, reading : Reading):
+    def send_to_database(self, reading : Reading):
         """
-        Posts data in Reading object to database.
+        Sends a Reading object to the backend database for storage.
 
         Args:
-            reading (Reading): Reading object to store.
+            reading (Reading): Reading object to send.
         """
-        json = {
-                "temperature": reading.temp,
-                "humidity": reading.hum,
-                "time": str(reading.time)
-            }
-        self.db.send_data(json)
+        self.db.send_climate_data(reading.to_dict())
 
-    def publish_data(self, reading : Reading):
+    def send_to_websocket(self, reading : Reading):
         """
-        Publishes data to a real-time socket.
+        Sends a Reading object to the backend database's websocket.
 
         Args:
-            reading (Reading): Reading object to publish.
+            reading (Reading): Reading object to send.
         """
-        json = {
-            "temperature": reading.temp,
-            "humidity": reading.hum,
-            "time": str(reading.time)
-        }
-        self.sock.send(json)
+        self.db.send_climate_data_websocket(reading.to_dict())
 
     def get_buffer(self):
         """
         Returns all values in the buffer.
 
         Returns:
-            list[Reading]: List of captured Reading entries.
+            RotatingTimeList: List of captured `Reading` entries.
         """
         return self.reading_buff
 
@@ -119,30 +120,42 @@ class TempSensor(Thread):
             Reading: Reading object containing the captured data.
         """
         humidity, temperature = Adafruit_DHT.read_retry(self.sensor, self.pin)
-        if humidity != None and temperature != None:
+        if humidity is not None and temperature is not None:
             humidity = round(humidity, 2)
             temperature = round(temperature, 2)
+            return Reading(temperature, humidity, convert = self.use_fahrenheit, is_fahrenheit=False)
         else:
             LOGGER.error(f"Failed to read sensor. Sensor returned {temperature}, {humidity}.")
-        return Reading(temperature, humidity, convert = self.use_fahrenheit, repr_fahrenheit = self.use_fahrenheit)
+            return None
 
     def run(self):
         """
-        Continuously reads from sensor every second.
+        Continuously reads from sensor every 2 seconds.
         Runs indefinitely until terminate() is called.
         """
         while not self.term.is_set():
+
             try:
-                self.add_reading(self.read())
-                self.publish_data(self.get_avg())
+                reading = self.read()
+                average = self.get_avg()
             except Exception as e:
                 LOGGER.error(f"Error reading from DHT22: {str(e)}")
+                self.term.wait(2)
+                continue
+
+            print(reading)
+            try:
+                self.add_to_buffer(reading)
+                self.send_to_websocket(average)
+            except Exception as e:
+                LOGGER.error(f"Error sending data to database: {str(e)}")
+
             # dht sensors need a minimum of 2 seconds between readings
             self.term.wait(2)
 
     def terminate(self):
         """
-        Stops this threads run() method.
+        Stops this thread.
         """
         self.term.set()
 

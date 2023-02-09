@@ -1,17 +1,19 @@
-import configparser
 import datetime
 import logging
+import os
 import signal
 import sys
 import time
 import traceback
 
 from threading import Event
+from config import Config
 from utils import SocketConnector, now
 
 
 from devices import TempSensor, RelayDevice
 from utils import Database
+from utils.reading import Reading
 
 
 LOGGER = logging.getLogger()
@@ -33,6 +35,10 @@ def update_log_file():
     Updates the current log file name to the current date.
     """
     global LOG_FILE_HANDLER, LOG_FORMATTER
+
+    if(not os.path.exists("logs")):
+        os.mkdir("logs")
+
     if LOG_FILE_HANDLER != None: LOGGER.removeHandler(LOG_FILE_HANDLER)
     LOG_FILE_HANDLER = logging.FileHandler(f"logs/{datetime.datetime.now().date()}.log", mode='a')
     LOG_FILE_HANDLER.setFormatter(LOG_FORMATTER)
@@ -56,8 +62,7 @@ LOGGER.addHandler(log_stdout_handler)
 class Service:
 
     def __init__(self, config_file):
-        self.config_file = config_file
-        self.load_config()
+        self.config = Config(config_file)
 
         LOGGER.debug("Starting service.")
 
@@ -77,57 +82,25 @@ class Service:
         if self.dht: self.dht.terminate()
         self.term.set()
 
-    def load_config(self):
-        config = configparser.ConfigParser()
-        config.read(self.config_file)
-
-        # thermostat settings
-        self.desired_temp = config.getint("THERMOSTAT", "desired_temp")
-        self.desired_hum = config.getint("THERMOSTAT", "desired_humidity")
-        self.temp_range = config.getint("THERMOSTAT", "temp_range")
-        self.hum_range = config.getint("THERMOSTAT", "humidity_range")
-        self.buffer_dur = config.getint("THERMOSTAT", "buffer_duration")
-        self.spray_dur = config.getint("THERMOSTAT", "spray_duration")
-        self.hardware_interval = config.getint("THERMOSTAT", "hardware_interval")
-
-        # schedule settings
-        self.day_start = config.getint("SCHEDULE", "day_start")
-        self.day_end = config.getint("SCHEDULE", "day_end")
-
-        # server settings
-        self.server_url = config.get("SERVER", "base_url")
-        self.sock_url = config.get("SERVER", "sock_url")
-        self.server_port = config.getint("SERVER", "port")
-        self.user = config.get("SERVER", "username")
-        self.password = config.get("SERVER", "password")
-        self.db_interval = config.getint("SERVER", "data_update_interval")
-
-        self.server_url = f"{self.server_url}:{self.server_port}"
-        self.device_url = config.get('SERVER', 'device_url')
-        self.data_url = config.get('SERVER', 'data_url')
-
-        # gpio settings
-        self.heater_gpio = config.getint("GPIO", "heater")
-        self.humidifier_gpio = config.getint("GPIO", "humidifier")
-        self.lamp_gpio = config.getint("GPIO", "lamp")
-        self.dht_gpio = config.getint("GPIO", "dht22")
-
-
     def init_devices(self):
-        # initialize devices
+        """
+        Initializes the database connection and all GPIO devices.
+        """
 
-        self.data_upload = Database(self.server_url + self.data_url, self.user, self.password)
-        self.device_upload = Database(self.server_url + self.device_url, self.user, self.password)
-        self.data_socket = SocketConnector(self.sock_url, self.user, self.password)
+        self.database = Database(self.config)
 
-        self.heater = RelayDevice(self.heater_gpio, self.device_upload, name = "Heating Pad", normally_closed = True)
-        self.lamp = RelayDevice(self.lamp_gpio, self.device_upload, name = "Lamp", normally_closed = False)
-        self.humidifier = RelayDevice(self.humidifier_gpio, self.device_upload, name = "Humidifier", normally_closed = False)
-        self.dht = TempSensor(self.dht_gpio, self.data_upload, self.data_socket, buffer_duration=self.buffer_dur)
+        self.heater = RelayDevice(self.config.heater_gpio, self.database, name = "Heating Pad", normally_closed = True)
+
+        self.lamp = RelayDevice(self.config.lamp_gpio, self.database, name = "Lamp", normally_closed = False)
+
+        self.humidifier = RelayDevice(self.config.humidifier_gpio, self.database, name = "Humidifier", normally_closed = False)
+
+        self.dht = TempSensor(self.config.dht_gpio, self.database, buffer_duration=self.config.buffer_dur)
 
     def begin_reading(self):
         """
         Starts a thread to start reading data from the DHT sensor.
+        This waits for the sensor to to fully available before returning.
 
         NOTE: Is blocking if the sensor is unresponsive.
         """
@@ -162,13 +135,13 @@ class Service:
             LOGGER.debug(f"DHT Reading Buffer: {[str(r) for r in self.dht.get_buffer()]}")
 
             # only update hardware every hardware_interval seconds
-            if time.time() - last_hardware_update > self.hardware_interval:
+            if time.time() - last_hardware_update > self.config.hardware_interval:
                 last_hardware_update = time.time()
                 self.update_devices(reading)
 
-            if time.time() - last_db_update > self.db_interval:
+            if time.time() - last_db_update > self.config.db_interval:
                 last_db_update = time.time()
-                self.dht.post_data(reading)
+                self.dht.send_to_database(reading)
 
             # update database every minute
             self.term.wait(60)
@@ -176,7 +149,7 @@ class Service:
         LOGGER.info("Exited main loop.")
 
 
-    def update_devices(self, reading):
+    def update_devices(self, reading: Reading):
         """
         Updates power state of heating and humidity devices.
 
@@ -191,13 +164,13 @@ class Service:
 
         # run thermostat checks
         current_hour = datetime.datetime.now().hour
-        is_daytime = current_hour > self.day_start and current_hour < self.day_end
+        is_daytime = current_hour > self.config.day_start and current_hour < self.config.day_end
 
         # forces lamp to be off at night
         if not is_daytime:
             self.lamp.off()
 
-        if temp < self.desired_temp-self.temp_range:
+        if temp < self.config.desired_temp - self.config.temp_range:
             if is_daytime:
                 # if the lamp is not on, turn it on first.
                 # If its still too cold on next check, turn on heater
@@ -208,7 +181,7 @@ class Service:
             else:
                 self.heater.on()
 
-        if temp > self.desired_temp+self.temp_range:
+        if temp > self.config.desired_temp + self.config.temp_range:
             if is_daytime:
                 # if the heater is on, turn it off first.
                 # If its still too hot on next check, turn off lamp
@@ -220,8 +193,8 @@ class Service:
                 self.heater.off()
 
 
-        if hum < self.desired_hum-self.hum_range and not hum < 0 and not hum > 100:
-            self.humidifier.on_timed(self.spray_dur)
+        if hum < self.config.desired_hum-self.config.hum_range and not hum < 0 and not hum > 100:
+            self.humidifier.on_timed(self.config.spray_dur)
 
 if __name__ == "__main__":
     service = Service("config.ini")
