@@ -4,10 +4,17 @@ from channels.generic.websocket import AsyncJsonWebsocketConsumer
 from django.utils.dateparse import parse_datetime
 from django.conf import settings
 
-class DataConsumer(AsyncJsonWebsocketConsumer):
+class WebsocketConsumer(AsyncJsonWebsocketConsumer):
+    """
+    This class is used to consume websocket connections. It runs asynchronously
+    and sends each received message to all connected clients.
+    """
+
     async def connect(self):
         """
-        Called upon websocket connection.
+        Called upon websocket connection. This accepts the request,
+        adds the new channel to a group in the channel layer (redis),
+        and replies to the request.
         """
 
         await self.accept()
@@ -45,7 +52,8 @@ class DataConsumer(AsyncJsonWebsocketConsumer):
             parsed = parse_datetime(message["time"])
             message["time"] = parsed.strftime(format)
 
-        # type: send.json will cause group_send to call the inherited send_json method
+        # `"type": "send.json"` will cause `group_send` to call the `send_json` method
+        # inherited from `AsyncJsonWebsocketConsumer`
         response = {
                 "type": "send.json",
                 "text": message
@@ -59,4 +67,7 @@ class DataConsumer(AsyncJsonWebsocketConsumer):
         )
 
     async def disconnect(self, code):
+        """
+        Disconnects from the websocket connection.
+        """
         return await super().disconnect(code)

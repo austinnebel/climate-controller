@@ -1,3 +1,6 @@
+"""
+Defines all Django Views.
+"""
 from django.contrib.auth.models import User, Group
 from rest_framework import viewsets
 from rest_framework import permissions
@@ -8,7 +11,7 @@ from application.models import ClimateData
 
 class UserViewSet(viewsets.ModelViewSet):
     """
-    API endpoint that allows users to be viewed or edited.
+    All application users.
     """
     queryset = User.objects.all().order_by('-date_joined')
     serializer_class = UserSerializer
@@ -17,7 +20,7 @@ class UserViewSet(viewsets.ModelViewSet):
 
 class GroupViewSet(viewsets.ModelViewSet):
     """
-    API endpoint that allows groups to be viewed or edited.
+    All user groups.
     """
     queryset = Group.objects.all()
     serializer_class = GroupSerializer
@@ -25,7 +28,7 @@ class GroupViewSet(viewsets.ModelViewSet):
 
 class ClimateDataViewSet(viewsets.ModelViewSet):
     """
-    API endpoint that allows Climate Data to be listed.
+    All climate data posted from the embedded device.
     """
     queryset = ClimateData.objects.all()
     serializer_class = ClimateDataSerializer
