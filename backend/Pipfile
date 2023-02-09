@@ -8,10 +8,10 @@ Django = "*"
 djangorestframework = "*"
 django-cors-headers = "*"
 requests = "*"
-channels = "*"
 channels-redis = "*"
 asyncio = "*"
 websockets = "*"
+channels = {extras = ["daphne"], version = "*"}
 
 [dev-packages]
 

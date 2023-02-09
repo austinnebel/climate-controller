@@ -29,6 +29,7 @@ DEBUG = True
 #CORS_ORIGIN_WHITELIST = ['*']
 CORS_ALLOW_ALL_ORIGINS=True
 ALLOWED_HOSTS=["*"]
+
 # global time formatting
 REST_FRAMEWORK = {
     'TIME_FORMAT': "%I:%M %p",
@@ -50,6 +51,7 @@ CHANNEL_LAYERS = {
 # Application definition
 
 INSTALLED_APPS = [
+    'daphne',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
