@@ -1,4 +1,4 @@
-import { Container, Typography, useTheme } from "@mui/material";
+import { Typography, useTheme } from "@mui/material";
 import { formatDate } from "utils";
 import {
     VictoryChart,
@@ -21,6 +21,7 @@ export const DataGraph = <T extends Record<string, any>>({
     data,
     suffix,
     name,
+    style,
 }: {
     /** Data objects to graph. */
     data: T[];
@@ -32,6 +33,8 @@ export const DataGraph = <T extends Record<string, any>>({
     suffix: string;
     /** Graph display name. */
     name: string;
+    /** Graph container style. */
+    style?: React.CSSProperties;
 }) => {
     const theme = useTheme();
 
@@ -39,16 +42,30 @@ export const DataGraph = <T extends Record<string, any>>({
         return <LoadingIndicator />;
     }
 
-    const convertTimes = data.map((elem) => {
-        return {
-            ...elem,
-            time: new Date(elem.time),
-        };
+    /**
+     * Converts any "time" keys to `Date` objects.
+     * This is required for victory to calculate the time
+     * axis properly.
+     */
+    data = data.map((elem) => {
+        if ("time" in elem) {
+            return {
+                ...elem,
+                time: new Date(elem.time),
+            };
+        }
+        return elem;
     });
 
     return (
-        <Container style={{ padding: 0 }}>
-            <Typography className="graphheader" style={{ textAlign: "center" }}>
+        <div
+            style={{
+                padding: 0,
+                paddingRight: 0,
+                ...style,
+            }}
+        >
+            <Typography variant="h6" style={{ textAlign: "center" }}>
                 {name}
             </Typography>
 
@@ -58,6 +75,7 @@ export const DataGraph = <T extends Record<string, any>>({
                 domainPadding={{ x: [0, 0], y: [10, 10] }}
                 domain={{ y: [50, 100] }}
                 scale={{ x: "time", y: "linear" }}
+                width={400}
                 animate={{
                     duration: 500,
                 }}
@@ -70,10 +88,14 @@ export const DataGraph = <T extends Record<string, any>>({
 
                 <VictoryLine
                     style={{
-                        data: { stroke: theme.palette.primary.main },
+                        data: {
+                            stroke: theme.palette.primary.main,
+                            opacity: 0.8,
+                        },
                     }}
-                    data={convertTimes}
+                    data={data}
                     interpolation="catmullRom"
+                    samples={5}
                     x={x}
                     y={y}
                     animate={{
@@ -84,9 +106,9 @@ export const DataGraph = <T extends Record<string, any>>({
 
                 <VictoryScatter
                     style={{
-                        data: { fill: theme.palette.primary.main },
+                        data: { fill: "red" },
                     }}
-                    data={[convertTimes[convertTimes.length - 1]]}
+                    data={[data[data.length - 1]]}
                     x={x}
                     y={y}
                     animate={{
@@ -95,7 +117,7 @@ export const DataGraph = <T extends Record<string, any>>({
                     }}
                 />
             </VictoryChart>
-        </Container>
+        </div>
     );
 };
 

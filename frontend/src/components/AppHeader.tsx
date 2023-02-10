@@ -5,17 +5,15 @@ export const AppHeader = () => {
     const theme = useTheme();
 
     return (
-        <Container
-            sx={{ borderBottom: `1px solid ${theme.palette.primary.main}` }}
+        <div
             style={{
                 width: "100%",
                 height: "auto",
                 padding: "12px",
                 margin: 0,
                 display: "flex",
-                flexDirection: "column",
-                alignContent: "center",
                 justifyContent: "center",
+                borderBottom: `1px solid ${theme.palette.primary.main}`,
             }}
         >
             <DeviceThermostat
@@ -23,7 +21,7 @@ export const AppHeader = () => {
                 color="primary"
                 style={{ width: "auto" }}
             />
-        </Container>
+        </div>
     );
 };
 

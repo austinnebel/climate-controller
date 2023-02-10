@@ -1,4 +1,4 @@
-import { Container, Typography, Divider } from "@mui/material";
+import { Typography, Divider } from "@mui/material";
 
 /** Container for a single section of a screen. */
 export const AppSection = ({
@@ -6,18 +6,21 @@ export const AppSection = ({
     children,
     /** Section name; is displayed above all children. */
     heading,
+    /** Content container style. */
+    style,
 }: {
     children: React.ReactNode;
     heading: string;
+    style?: React.CSSProperties;
 }) => {
     return (
-        <Container style={{ marginBottom: "12px", padding: 0 }}>
+        <div style={{ marginBottom: "12px", padding: 0, width: "100%" }}>
             <Typography variant="h4" style={{ textAlign: "center" }}>
                 {heading}
             </Typography>
             <Divider style={{ width: "100%", marginBottom: "12px" }} />
-            {children}
-        </Container>
+            <div style={style}>{children}</div>
+        </div>
     );
 };
 

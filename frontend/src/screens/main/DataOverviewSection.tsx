@@ -1,12 +1,15 @@
-import { Container, Typography } from "@mui/material";
+import { Typography } from "@mui/material";
 import { ClimateData } from "api/types";
 import { AppSection, LoadingIndicator } from "components";
 import { formatDate } from "utils";
+import { useIsPortrait } from "utils/useIsPortrait";
 
 /**
  * Displays an overview of the current climate data.
  */
 export const DataOverviewSection = ({ data }: { data: ClimateData[] }) => {
+    const isPortrait = useIsPortrait();
+
     let latest = undefined;
     if (data.length > 0) {
         latest = data[data.length - 1];
@@ -21,19 +24,27 @@ export const DataOverviewSection = ({ data }: { data: ClimateData[] }) => {
 
     return (
         <AppSection heading="Climate">
-            <Container
+            <div
                 style={{
                     display: "flex",
                     flexDirection: "column",
                     alignItems: "center",
                 }}
             >
-                <Typography variant="h3">{temp}</Typography>
-                <Typography variant="h3">{humidity}</Typography>
+                <div
+                    style={{
+                        display: "flex",
+                        flexDirection: isPortrait ? "column" : "row",
+                        gap: isPortrait ? 0 : "24px",
+                    }}
+                >
+                    <Typography variant="h3">{temp}</Typography>
+                    <Typography variant="h3">{humidity}</Typography>
+                </div>
                 <Typography variant="body1">
                     {formatDate(latest.time)}
                 </Typography>
-            </Container>
+            </div>
         </AppSection>
     );
 };
