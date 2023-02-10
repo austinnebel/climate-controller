@@ -1,12 +1,11 @@
-import { AppContainer } from "components";
-import { useClimateData } from "hooks/useAPI";
+import { useClimateData } from "api/hooks";
 import { DataOverviewSection } from "screens/main/DataOverviewSection";
 import { DataGraphSection } from "screens/main/GraphSection";
 
 const SERVER = "127.0.0.1:8000";
 
 export const MainScreen = () => {
-    const climateData = useClimateData(SERVER);
+    const [climateData, loading] = useClimateData();
 
     return (
         <AppContainer>

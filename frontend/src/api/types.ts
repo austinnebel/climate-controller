@@ -1,3 +1,6 @@
+/**
+ * Represents a climate data entry from the database.
+ */
 export type ClimateData = {
     /** Time of data capture. */
     time: string;
@@ -7,4 +10,12 @@ export type ClimateData = {
     humidity: number;
 };
 
-export type DeviceData = any;
+/**
+ * Represents climate data entry from the database.
+ */
+export type DeviceData = {
+    /** Time that `event` occurred. */
+    time: string;
+    event: string;
+    device: string;
+};
