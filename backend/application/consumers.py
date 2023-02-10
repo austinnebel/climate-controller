@@ -44,7 +44,7 @@ class WebsocketConsumer(AsyncJsonWebsocketConsumer):
             await self.close()
             return"""
 
-        print(f"RECEIVED {content}")
+        # print(f"RECEIVED {content}")
 
         message = content["text"]
         if "time" in message.keys():
@@ -59,7 +59,7 @@ class WebsocketConsumer(AsyncJsonWebsocketConsumer):
                 "text": message
             }
 
-        print(f"RESPONDING: {response}")
+        # print(f"RESPONDING: {response}")
 
         return await self.channel_layer.group_send(
             self.group_name,

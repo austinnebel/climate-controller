@@ -143,7 +143,6 @@ class TempSensor(Thread):
                 self.term.wait(2)
                 continue
 
-            print(reading)
             try:
                 self.add_to_buffer(reading)
                 self.send_to_websocket(average)
