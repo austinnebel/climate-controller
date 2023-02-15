@@ -152,10 +152,11 @@ class TempSensor(Thread):
             # dht sensors need a minimum of 2 seconds between readings
             self.term.wait(2)
 
-    def terminate(self):
+    def terminate(self, sig, frame):
         """
         Stops this thread.
         """
+        print("Terminating temp sensor.")
         self.term.set()
 
 

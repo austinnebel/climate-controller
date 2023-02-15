@@ -79,7 +79,7 @@ class Service:
         if self.heater: self.heater.on()
         if self.humidifier: self.humidifier.off()
         if self.lamp: self.lamp.off()
-        if self.dht: self.dht.terminate()
+        if self.dht: self.dht.terminate(sig, frame)
         self.term.set()
 
     def init_devices(self):
@@ -99,7 +99,7 @@ class Service:
 
     def begin_reading(self):
         """
-        Starts a thread to start reading data from the DHT sensor.
+        Starts a thread that continuously reads data from the DHT sensor.
         This waits for the sensor to to fully available before returning.
 
         NOTE: Is blocking if the sensor is unresponsive.
@@ -112,7 +112,9 @@ class Service:
 
     def start(self):
         """
-        Starts the main service thread.
+        Starts the main service thread. This updates the hardware power
+        states every 60 seconds based on the current running average
+        of the DHT sensor readings.
         """
         self.begin_reading()
 
@@ -125,20 +127,25 @@ class Service:
 
             update_log_file()
 
+            # get current running average of sensor
             reading = self.dht.get_avg()
+
+            # if reading failed, log error and skip this loop iteration
             if reading is None or reading.temp is None or reading.hum is None:
                 LOGGER.error("ERROR: Failed to read averages from sensor.")
                 self.term.wait(60)
                 continue
 
+            # log reading values
             LOGGER.info(f"{reading}   -   Heater: {self.heater.is_on()}   -   Lamp: {self.lamp.is_on()}")
             LOGGER.debug(f"DHT Reading Buffer: {[str(r) for r in self.dht.get_buffer()]}")
 
-            # only update hardware every hardware_interval seconds
+            # only update hardware every `hardware_interval` seconds
             if time.time() - last_hardware_update > self.config.hardware_interval:
                 last_hardware_update = time.time()
                 self.update_devices(reading)
 
+            # only update database every `db_interval` seconds
             if time.time() - last_db_update > self.config.db_interval:
                 last_db_update = time.time()
                 self.dht.send_to_database(reading)
