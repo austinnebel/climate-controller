@@ -15,6 +15,7 @@
         "@types/react": "^18.0.17",
         "@types/react-dom": "^18.0.6",
         "axios": "^0.24.0",
+        "env-cmd": "^10.1.0",
         "react": "^17.0.2",
         "react-dom": "^17.0.2",
         "react-loading-icons": "^1.0.6",
@@ -47,8 +48,5 @@
             "last 1 firefox version",
             "last 1 safari version"
         ]
-    },
-    "devDependencies": {
-        "env-cmd": "^10.1.0"
     }
 }
