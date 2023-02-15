@@ -20,3 +20,13 @@ sensors and publish the information to the backend project.
 3. Run `pipenv shell` to enter the Pip environment.
 4. Run `python main.py` to start the project.
 
+## Docker
+
+This package can be easily run with docker. To allow docker to have access to the Raspberry Pi's GPIO system, the container must be run with the following flags:
+
+`docker run --device /dev/gpiomem -t climate-controller-embedded .`
+
+The `--device /dev/gpiomem` snippet gives docker access to the GPIO system device.
+
+> **NOTE**
+> See [this StackOverflow answer](https://stackoverflow.com/a/48234752) for more information.
