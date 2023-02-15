@@ -20,6 +20,10 @@ The backend of this project uses Django REST framework for managing the backend 
 5. `docker run -p 6379:6379 -d redis:5` - Initializes a redis server in a docker container.
 6. `python manage.py runserver` - Starts the DJango development server.
 
+To deploy the server, run:
+
+`pipenv run daphne backend.asgi:application`
+
 ### Secret Key
 
 A secret key is needed to keep Django secure. We can use the `get_random_secret_key` function built into Django to get one.
