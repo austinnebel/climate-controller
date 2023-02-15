@@ -1,0 +1,10 @@
+version: "3"
+services:
+    climate-controller-backend:
+        image: climate-controller-backend:latest
+        ports:
+            - 8000:8000
+    redis:
+        image: redis:5
+        ports:
+            - 6379:6379
