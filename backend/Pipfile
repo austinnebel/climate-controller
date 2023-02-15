@@ -13,4 +13,4 @@ channels = {extras = ["daphne"], version = "*"}
 [dev-packages]
 
 [requires]
-python_version = "3.10"
+python_version = "3.9"
