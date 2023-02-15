@@ -7,13 +7,10 @@ name = "pypi"
 Django = "*"
 djangorestframework = "*"
 django-cors-headers = "*"
-requests = "*"
 channels-redis = "*"
-asyncio = "*"
-websockets = "*"
 channels = {extras = ["daphne"], version = "*"}
 
 [dev-packages]
 
 [requires]
-python_version = "3.7"
+python_version = "3.10"
