@@ -13,6 +13,10 @@ sensors and publish the information to the backend project.
 
 ## Installation
 
-1. Run `pipenv install` in this directory.
-2. Run `pipenv shell` to enter the Pip environment.
-3. Run `python main.py` to start the project.
+1. Copy the contents of **config.ini.example** into a new file **config.ini**
+    - This can be easily done in Linux with `cat config.ini.example > config.ini`
+    - Most variables can be left alone, however the `username` and `password` fields in the `[SERVER]` section are required.
+2. Run `pipenv install` in this directory.
+3. Run `pipenv shell` to enter the Pip environment.
+4. Run `python main.py` to start the project.
+
