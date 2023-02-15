@@ -12,8 +12,8 @@ channels = "*"
 channels-redis = "*"
 asyncio = "*"
 websockets = "*"
-"RPi.GPIO" = {version = "*", sys_platform = "!= 'win32'"}
-"Adafruit-DHT" = {version = "*", sys_platform = "!= 'win32'"}
+"RPi.GPIO" = {version = "*", platform_machine = "== 'armv6l'"}
+"Adafruit-DHT" = {version = "*", platform_machine = "== 'armv6l'"}
 
 [dev-packages]
 "mock.gpio" = "*"
