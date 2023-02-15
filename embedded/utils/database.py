@@ -68,7 +68,7 @@ class Database():
 
 class SocketConnector:
 
-    def __init__(self, url, user, password):
+    def __init__(self, url: str, user: str, password: str):
         """
         Utility for posting data to the local database server.
         """
@@ -80,6 +80,10 @@ class SocketConnector:
         self.loop = asyncio.get_event_loop()
 
     async def connect(self, close_timeout = 5):
+        """
+        This connects to the websocket and verifies a successful
+        connection.
+        """
         if self.ws and self.ws.open:
             return True
 
@@ -89,7 +93,14 @@ class SocketConnector:
         except asyncio.TimeoutError as e:
             LOGGER.error("Failed to make socket connection to database.")
             return False
-        return True
+
+        # makes sure the backend responded with "websocket.accept"
+        response = json.loads(await self.ws.recv())
+        if "type" in response.keys() and response["type"] == "websocket.accept":
+            LOGGER.info("Websocket connection established.")
+            return True
+
+        return False
 
     async def _send(self, message):
 
@@ -99,18 +110,15 @@ class SocketConnector:
         if "time" not in message.keys():
             message["time"] = str(now())
 
-        await self.ws.send(json.dumps(
-            {
-                "type": "receive.json",
-                "text": message
+        await self.ws.send(
+            json.dumps(
+                {
+                    "type": "receive.json",
+                    "text": message
                 }
             )
         )
-        r = json.loads(await self.ws.recv())
-        if "type" in r.keys() and r["type"] == "websocket.accept":
-            LOGGER.debug(f"Sent message over socket: {message}")
-            return True
-        return False
+        return True
 
     async def begin_event_loop(self):
 

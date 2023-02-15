@@ -6,7 +6,7 @@ from django.urls import path, include
 from application.api.views import ClimateDataAPI, DeviceDataAPI
 from rest_framework.routers import DefaultRouter
 from django.conf.urls import url
-from application.consumers import WebsocketConsumer
+from application.consumers import ClientWebsocketConsumer, EmbeddedWebsocketConsumer
 
 
 router = DefaultRouter()
@@ -23,5 +23,6 @@ Websocket URL locations.
 """
 websocket_urlpatterns = [
     # Route for the /ws/currentData/ websocket
-    url(r"^ws/currentData/", WebsocketConsumer.as_asgi()),
+    url(r"^ws/currentData/", ClientWebsocketConsumer.as_asgi()),
+    url(r"^ws/broadcastData/", EmbeddedWebsocketConsumer.as_asgi()),
 ]

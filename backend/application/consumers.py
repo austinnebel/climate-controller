@@ -4,7 +4,43 @@ from channels.generic.websocket import AsyncJsonWebsocketConsumer
 from django.utils.dateparse import parse_datetime
 from django.conf import settings
 
-class WebsocketConsumer(AsyncJsonWebsocketConsumer):
+CLIENT_GROUP = "client-group"
+EMBEDDED_GROUP = "embedded-group"
+
+class ClientWebsocketConsumer(AsyncJsonWebsocketConsumer):
+    """
+    This class is used to broadcast climate data to clients.
+    Once a client connects to this consumer they will receive all
+    messages broadcasted by `EmbeddedWebsocketConsumer`
+    """
+
+    async def connect(self):
+        """
+        Called upon websocket connection. This accepts the request,
+        adds the new channel to a group in the channel layer (redis),
+        and replies to the request.
+        """
+
+        await self.accept()
+        self.user = self.scope["user"]
+        self.group_name = CLIENT_GROUP
+
+        # adds this channel to the `CLIENT_GROUP` group
+        await self.channel_layer.group_add(self.group_name, self.channel_name)
+        print("Added channel to", self.group_name)
+
+        return await self.send_json(
+            {"type": "websocket.accept"}
+        )
+
+    async def disconnect(self, code):
+        """
+        Disconnects from the websocket connection.
+        """
+        return await super().disconnect(code)
+
+
+class EmbeddedWebsocketConsumer(AsyncJsonWebsocketConsumer):
     """
     This class is used to consume websocket connections. It runs asynchronously
     and sends each received message to all connected clients.
@@ -19,11 +55,11 @@ class WebsocketConsumer(AsyncJsonWebsocketConsumer):
 
         await self.accept()
         self.user = self.scope["user"]
-        self.group_name = f"data-client"
+        self.group_name = EMBEDDED_GROUP
 
-        # adds this channel to the data-client group
+        # adds this channel to the `EMBEDDED_GROUP` group
         await self.channel_layer.group_add(self.group_name, self.channel_name)
-        print(self.group_name, self.channel_name)
+        print("Added channel to", self.group_name)
 
         return await self.send_json(
             {"type": "websocket.accept"}
@@ -31,7 +67,7 @@ class WebsocketConsumer(AsyncJsonWebsocketConsumer):
 
     async def receive_json(self, content):
         """
-        Receives a JSON-like text object and sends it to all channels in the data-client group.
+        Receives a JSON-like text object and sends it to all channels in `CLIENT_GROUP`.
         This method is accessed by passing type: receive.json to the websocket.
 
         NOTE: Normally, content would be text, but AsyncJsonWebsocketConsumer does automatic conversions.
@@ -59,10 +95,11 @@ class WebsocketConsumer(AsyncJsonWebsocketConsumer):
                 "text": message
             }
 
-        # print(f"RESPONDING: {response}")
+        print(f"Broadcasting to clients: {response}")
 
+        # Broadcast received message to all channels in `CLIENT_GROUP`
         return await self.channel_layer.group_send(
-            self.group_name,
+            CLIENT_GROUP,
             response
         )
 
