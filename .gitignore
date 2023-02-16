@@ -1,6 +1,4 @@
-*.png
 *.log
 */.venv
 .venv
-install/
 config.ini

@@ -4,7 +4,7 @@ After=network.target
 
 [Service]
 User=pi
-WorkingDirectory=/home/pi/climate-controller
+WorkingDirectory=/home/pi/climate-controller/embedded
 ExecStart=/usr/local/bin/pipenv run python main.py
 Restart=always
 

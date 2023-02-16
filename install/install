@@ -1,0 +1,83 @@
+#!/bin/bash
+
+# Update apt
+sudo apt-get update
+
+# Install build tools
+sudo apt-get install build-essential libssl-dev libffi-dev python-dev
+
+# Install rust compiler using `rustup` (needed for django-channels in backend project)
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+source "$HOME/.cargo/env"
+
+# Install pipenv
+sudo -H pip install -U pipenv
+
+# Install Node
+wget https://nodejs.org/dist/latest-v11.x/node-v11.15.0-linux-armv6l.tar.gz
+sudo tar -C /usr/local --strip-components 1 -xzf node-v11.15.0-linux-armv6l.tar.gz
+rm node-v11.15.0-linux-armv6l.tar.gz
+
+# Install and enable redis-server
+sudo apt install redis-server
+sudo systemctl enable redis-server
+
+# Create backend credentials
+
+echo "Enter an admin username"
+read USERNAME
+
+echo "Enter an admin email"
+read EMAIL
+
+echo "Enter an admin password"
+read PASSWORD
+
+# Install embedded project
+
+cd ../embedded
+pipenv sync
+
+# Update embedded/config.ini
+cat config.ini.example > config.ini
+echo "username=\"$USERNAME\"" >> config.ini
+echo "password=\"$PASSWORD\"" >> config.ini
+
+# Install backend project
+cd ../backend
+
+pipenv sync
+
+# Update backend/.env with django variables and secret key
+echo "DJANGO_SUPERUSER_USERNAME=\"$USERNAME\"" >> .env
+echo "DJANGO_SUPERUSER_EMAIL=\"$EMAIL\"" >> .env
+echo "DJANGO_SUPERUSER_PASSWORD=\"$PASSWORD\"" >> .env
+
+# Add Django secret key to backend/.env
+pipenv run --quiet python -c 'from django.core.management.utils import get_random_secret_key; print(f"SECRET_KEY=\"{get_random_secret_key()}\"")' >> .env
+
+# Make Django migrations and add superuser
+pipenv run python manage.py migrate
+pipenv run python manage.py createsuperuser --noinput
+
+# Install frontend project
+cd ../frontend && npm ci
+
+
+# Copy all service files to /etc/systemd/system/
+sudo cp ./climate_back.service /etc/systemd/system/
+sudo cp ./climate_emb.service /etc/systemd/system/
+sudo cp ./climate_front.service /etc/systemd/system/
+
+# Reload systemcl
+systemctl daemon-reload
+
+# Enable all services
+
+sudo systemctl enable climate_emb
+sudo systemctl enable climate_front
+sudo systemctl enable climate_back
+
+# Reboot the system
+# This is required so that Adafruit drivers install properly
+sudo reboot
