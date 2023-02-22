@@ -2,6 +2,7 @@ import logging
 import requests
 import json
 import asyncio
+import os
 from queue import Queue
 from config import Config
 from utils.reading import Reading
@@ -29,13 +30,13 @@ class Database():
         self.ws_url = f"ws://{config.server_hostname}:{config.server_port}"
         """ Websocket URL to the database. """
 
-        self.user = config.user
+        self.user = os.getenv("DJANGO_USERNAME")
         """ Database Username. """
 
-        self.password = config.password
+        self.password = os.getenv("DJANGO_PASSWORD")
         """ Database Password. """
 
-        self.websocket = SocketConnector(self.ws_url + config.socket_endpoint, config.user, config.password)
+        self.websocket = SocketConnector(self.ws_url + config.socket_endpoint, self.user, self.password)
         """ Database websocket connection. """
 
     def send_climate_data(self, data: Reading):

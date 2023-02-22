@@ -52,13 +52,8 @@ class Config:
         self.socket_endpoint = config.get("SERVER", "socket_endpoint")
         """ Websocket endpoint. """
 
-        self.user = config.get("SERVER", "username")
-        """ Server username. """
-
-        self.password = config.get("SERVER", "password")
-        """ Server password. """
-
         self.db_interval = config.getint("SERVER", "data_update_interval")
+        """ How often to update the server climate information. """
 
         self.device_endpoint = config.get('SERVER', 'device_endpoint')
         """ Server endpoint used to post device information. """
