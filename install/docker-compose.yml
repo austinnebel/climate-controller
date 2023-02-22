@@ -11,8 +11,7 @@ services:
             - 3000:3000
     climate-controller-embedded:
         image: austinnebel/climate-controller-embedded:latest
-        devices:
-            - /dev/gpiomem:/dev/gpiomem
+        privileged: true
     redis:
         image: redis:5
         ports:
