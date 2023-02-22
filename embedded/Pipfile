@@ -6,11 +6,11 @@ name = "pypi"
 [packages]
 asyncio = "*"
 websockets = "*"
-"RPi.GPIO" = {version = "*", platform_machine = "== 'armv6l'"}
-"Adafruit-DHT" = {version = "*", platform_machine = "== 'armv6l'"}
+pytz = "*"
+requests = "*"
+"mock.gpio" = "*"
 
 [dev-packages]
-"mock.gpio" = "*"
 
 [requires]
 python_version = "3.9"
