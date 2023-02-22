@@ -2,6 +2,18 @@
 
 This is the frontend of the climate controller. The frontend is built with React and typescript.
 
+To run this project in a docker container, run the following in this directory:
+
+```bash
+docker build -t climate-controller-frontend .
+
+docker run -p 3000:3000 climate-controller-frontend
+```
+
+> **NOTE**
+>
+> The above command will not be able to communicate with the other containers unless they are on the same virtual network. This is done automatically by `docker compose`.
+
 ## React Scripts
 
 ### `npm start`
