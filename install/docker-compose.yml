@@ -1,0 +1,19 @@
+# Docker compose file for use on a Raspberry Pi.
+version: "3"
+services:
+    climate-controller-backend:
+        image: austinnebel/climate-controller-backend:latest
+        ports:
+            - 8000:8000
+    climate-controller-frontend:
+        image: austinnebel/climate-controller-frontend:latest
+        ports:
+            - 3000:3000
+    climate-controller-embedded:
+        image: austinnebel/climate-controller-embedded:latest
+        devices:
+            - /dev/gpiomem:/dev/gpiomem
+    redis:
+        image: redis:5
+        ports:
+            - 6379:6379

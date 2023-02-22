@@ -1,0 +1,17 @@
+#!/bin/bash
+
+##################################################################################################
+# This builds all docker images into your local docker system, including
+# frontend/Dockerfile, embedded/Dockerfile, and backend/Dockerfile.
+##################################################################################################
+
+# Validates directory
+if [[ `basename $PWD` != "scripts" ]];
+then
+    echo "Failed to build docker images. Please run this script from within the 'scripts/' directory."
+    exit
+fi
+
+docker buildx build --load -t climate-controller-embedded ../embedded
+docker buildx build --load -t climate-controller-frontend ../frontend
+docker buildx build --load -t climate-controller-backend ../backend

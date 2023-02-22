@@ -1,82 +1,70 @@
 #!/bin/bash
 
+##################################################################################################
+# This is used to quickly configure a raspberry pi with the docker images created by this repository.
+# Simply run `./install` and this will install docker, required docker plugins, and the service used
+# to automatically run all docker images.
+##################################################################################################
+
+# Validates directory
+if [[ `basename $PWD` != "install" ]];
+then
+    echo "Failed to install. Please run this script from within the 'install/' directory."
+    exit
+fi
+
 # Update apt
 sudo apt-get update
 
 # Install build tools
-sudo apt-get install build-essential libssl-dev libffi-dev python-dev
+sudo apt-get install build-essential libssl-dev libffi6 libffi-dev python-dev
 
-# Install rust compiler using `rustup` (needed for django-channels in backend project)
-curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
-source "$HOME/.cargo/env"
+# Docker Installation
+# Docs: https://docs.docker.com/engine/install/debian/
 
-# Install pipenv
-sudo -H pip install -U pipenv
+# ContainerIO download
+wget https://download.docker.com/linux/raspbian/dists/bullseye/pool/stable/armhf/containerd.io_1.6.9-1_armhf.deb
 
-# Install Node
-wget https://nodejs.org/dist/latest-v11.x/node-v11.15.0-linux-armv6l.tar.gz
-sudo tar -C /usr/local --strip-components 1 -xzf node-v11.15.0-linux-armv6l.tar.gz
-rm node-v11.15.0-linux-armv6l.tar.gz
+# Docker Engine CLI
+wget https://download.docker.com/linux/raspbian/dists/bullseye/pool/stable/armhf/docker-ce-cli_23.0.1-1~raspbian.11~bullseye_armhf.deb
 
-# Install and enable redis-server
-sudo apt install redis-server
-sudo systemctl enable redis-server
+# Docker Engine
+wget https://download.docker.com/linux/raspbian/dists/bullseye/pool/stable/armhf/docker-ce_23.0.1-1~raspbian.11~bullseye_armhf.deb
 
-# Create backend credentials
+# Docker Extras
+wget https://download.docker.com/linux/raspbian/dists/bullseye/pool/stable/armhf/docker-ce-rootless-extras_23.0.1-1~raspbian.11~bullseye_armhf.deb
 
-echo "Enter an admin username"
-read USERNAME
+# Docker Compose
+wget https://download.docker.com/linux/raspbian/dists/bullseye/pool/stable/armhf/docker-compose-plugin_2.6.0~raspbian-bullseye_armhf.deb
 
-echo "Enter an admin email"
-read EMAIL
+# Docker BuildX Plugin
+https://download.docker.com/linux/debian/dists/bullseye/pool/stable/armhf/docker-buildx-plugin_0.10.2-1~debian.11~bullseye_armhf.deb
 
-echo "Enter an admin password"
-read PASSWORD
+# Install downloaded files
+sudo dpkg -i containerd.io_1.6.9-1_armhf.deb
+sudo dpkg -i docker-ce-cli_23.0.1-1~raspbian.11~bullseye_armhf.deb
+sudo dpkg -i docker-ce_23.0.1-1~raspbian.11~bullseye_armhf.deb
+sudo dpkg -i docker-ce-rootless-extras_23.0.1-1~raspbian.11~bullseye_armhf.deb
+sudo dpkg -i docker-compose-plugin_2.6.0~raspbian-bullseye_armhf.deb
+sudo dpkg -i docker-buildx-plugin_0.10.2-1~debian.11~bullseye_armhf.deb
 
-# Install embedded project
+# Makes buildx
+docker buildx install
 
-cd ../embedded
-pipenv sync
+# Add the "docker" user to the user group and add a group named "docker"
+# This is required to run docker without sudo
+sudo usermod -aG docker $USER
+newgrp docker
 
-# Update embedded/config.ini
-cat config.ini.example > config.ini
-echo "username=\"$USERNAME\"" >> config.ini
-echo "password=\"$PASSWORD\"" >> config.ini
-
-# Install backend project
-cd ../backend
-
-pipenv sync
-
-# Update backend/.env with django variables and secret key
-echo "DJANGO_SUPERUSER_USERNAME=\"$USERNAME\"" >> .env
-echo "DJANGO_SUPERUSER_EMAIL=\"$EMAIL\"" >> .env
-echo "DJANGO_SUPERUSER_PASSWORD=\"$PASSWORD\"" >> .env
-
-# Add Django secret key to backend/.env
-pipenv run --quiet python -c 'from django.core.management.utils import get_random_secret_key; print(f"SECRET_KEY=\"{get_random_secret_key()}\"")' >> .env
-
-# Make Django migrations and add superuser
-pipenv run python manage.py migrate
-pipenv run python manage.py createsuperuser --noinput
-
-# Install frontend project
-cd ../frontend && npm ci
-
-
-# Copy all service files to /etc/systemd/system/
-sudo cp ./climate_back.service /etc/systemd/system/
-sudo cp ./climate_emb.service /etc/systemd/system/
-sudo cp ./climate_front.service /etc/systemd/system/
+# Copy service file to /etc/systemd/system/ and comopse file to home directory
+sudo cp ./climate.service /etc/systemd/system/
+sudo cp ./docker-compose.yml /home/pi
 
 # Reload systemcl
 systemctl daemon-reload
 
-# Enable all services
-
-sudo systemctl enable climate_emb
-sudo systemctl enable climate_front
-sudo systemctl enable climate_back
+# Enable service
+sudo systemctl enable climate
 
 # Reboot the system
 # This is required so that Adafruit drivers install properly

@@ -1,0 +1,106 @@
+#!/bin/bash
+
+##################################################################################################
+# This is used to easily configure the backend and embedded configuration files
+# without needed to change any values manually.
+#
+# Specifically, this asks for a backend username, email, and password and inserts those values
+# into backend/.env, embedded/.env, and frontend/.env. This will also create an embedded/config.ini
+# file based off of embedded/config.example.ini if embedded/config.ini doesn't exist. Lastly, this
+# will automatically create a Django secret key and insert it into backend/.env.
+##################################################################################################
+
+# Validates directory
+if [[ `basename $PWD` != "scripts" ]];
+then
+    echo "Failed to configure. Please run this script from within the 'scripts/' directory."
+    exit
+fi
+
+# Creates a file if it doesn't exist.
+# $1: The name of the file.
+createIfDoesntExist () {
+    FILE=$1
+    [ -f "$FILE" ] || echo "Creating file $FILE"; touch "$FILE"
+}
+
+# Inserts a config entry into a file. If the entry already exists,
+# it will be replaced.
+#
+# $1: The field name. Example: HOST
+# $2: The file name. Example: .env
+# $3: The field value. Example: 127.0.0.1
+configInsert () {
+    FIELD="$1"
+    FILE="$2"
+    VALUE="$3"
+
+    createIfDoesntExist $FILE
+
+    if [[ `grep $FIELD $FILE` ]] ;
+    then
+        # Call sed to replace the field value. Ampersands are automatically escaped.
+        sed -i -E "s/^$FIELD[ ]*=.*/$FIELD=\"${VALUE//&/\\&}\"/" $FILE
+    else
+        # Append value to end of file
+        echo "$FIELD=\"$VALUE\"" >> $FILE
+    fi
+}
+
+# Creates a Django secret using python and inserts it into the file specified.
+# $1: The file to insert the secret into.
+createSecret () {
+    FILE=$1
+
+    createIfDoesntExist $FILE
+
+    # Generate key with pipenv python
+    KEY=`pipenv run --quiet python -c 'from django.core.management.utils import get_random_secret_key; print(f"{get_random_secret_key()}")'`
+    echo $KEY
+    configInsert SECRET_KEY $FILE $KEY
+}
+
+##################### Read backend credentials #####################
+
+echo "Enter the device hostname and port (ex. 127.0.0.1:8000): "
+read DJANGO_HOST
+
+echo "Enter an admin username: "
+read USERNAME
+
+echo "Enter an admin email:"
+read EMAIL
+
+echo "Enter an admin password: "
+read PASSWORD
+
+##################### Frontend configuration #####################
+
+cd ../frontend
+
+# Copy .env.example file to .env
+cat .env.example > .env
+configInsert REACT_APP_SERVER_HOSTNAME .env $DJANGO_HOST
+
+##################### Embedded configuration #####################
+
+cd ../embedded
+
+# Copy config.example.ini file to config.ini if it doesn't exist
+[ -f config.ini ] || cat config.example.ini > config.ini
+
+# Replace username and password entries in embedded/.env
+cat .env.example > .env
+configInsert DJANGO_USERNAME .env $USERNAME
+configInsert DJANGO_PASSWORD .env $PASSWORD
+
+##################### Backend configuration #####################
+
+cd ../backend
+
+# Replace username and password entries in backend/.env and create a secret key
+cat .env.example > .env
+configInsert DJANGO_SUPERUSER_USERNAME .env $USERNAME
+configInsert DJANGO_SUPERUSER_EMAIL .env $EMAIL
+configInsert DJANGO_SUPERUSER_PASSWORD .env $PASSWORD
+createSecret .env
