@@ -4,7 +4,7 @@ verify_ssl = true
 name = "pypi"
 
 [packages]
-Django = "*"
+django = "*"
 djangorestframework = "*"
 django-cors-headers = "*"
 channels-redis = "*"

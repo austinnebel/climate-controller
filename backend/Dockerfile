@@ -24,8 +24,8 @@ RUN pip install --user pipenv
 # Copy Pipfile
 COPY Pipfile .
 
-# Run Sync
-RUN /root/.local/bin/pipenv install --verbose
+# Install dependencies
+RUN /root/.local/bin/pipenv install --skip-lock;
 
 # Runtime image
 FROM python:3.9.16-slim-bullseye AS runtime
@@ -35,6 +35,7 @@ WORKDIR /usr/src/
 # Copy .venv from builder
 COPY --from=builder /usr/src/.venv/ /usr/src/.venv/
 
+COPY .env .
 COPY manage.py .
 COPY application/ application/
 COPY backend/ backend/
@@ -45,10 +46,11 @@ RUN chown backend -R .
 
 USER backend
 
-# Make initial migrations and create user
+# Make initial migrations and create user using environment variables
 RUN ./.venv/bin/python manage.py migrate
-RUN ./.venv/bin/python manage.py createsuperuser --noinput
+RUN export $(cat .env | xargs) && ./.venv/bin/python manage.py createsuperuser --noinput
 
 EXPOSE 8000
 
-CMD [ "./.venv/bin/daphne", "backend.asgi:application", "-b", "0.0.0.0", "-p", "8000"]
+ENTRYPOINT export $(cat .env | xargs) && ./.venv/bin/daphne backend.asgi:application $0 $@
+CMD ["-b", "0.0.0.0", "-p", "8000"]

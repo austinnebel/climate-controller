@@ -1,14 +1,25 @@
 # Climate Controller Backend
 
-The backend of this project uses Django REST framework for managing the backend API
+The backend of this project uses Django REST framework for managing the backend API.
 
-## Requirements
+To run this project in a docker container, run the following in this directory:
 
--   [Python 3.7](https://www.python.org/downloads/release/python-379/)
+```bash
+docker build -t climate-controller-backend .
+
+docker run -p 8000:8000 climate-controller-backend
+```
+
+> **NOTE**
+>
+> The above command will not be able to communicate with the other containers unless they are on the same virtual network. This is done automatically by `docker compose`.
+
+## Development Requirements
+
+-   [Python 3.9](https://www.python.org/downloads/release/python-3913/)
 -   pip
     -   This is generally always installed alongside Python.
 -   [pipenv](https://pypi.org/project/pipenv/#installation)
-    -   `pip install pipenv`
 -   [docker](https://docs.docker.com/get-docker/)
 
 ## Installation
@@ -22,7 +33,7 @@ The backend of this project uses Django REST framework for managing the backend 
 
 To deploy the server, run:
 
-`pipenv run daphne backend.asgi:application`
+`pipenv run daphne backend.asgi:application -b 0.0.0.0 -p 8000`
 
 ### Secret Key
 
