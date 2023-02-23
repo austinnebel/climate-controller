@@ -5,6 +5,8 @@ services:
         build: ./backend
         ports:
             - 8000:8000
+        depends_on:
+            - redis
     climate-controller-frontend:
         image: climate-controller-frontend
         build: ./backend
