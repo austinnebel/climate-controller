@@ -68,5 +68,5 @@ This explains how to initialize a Raspberry Pi to run the code in this repositor
     - Click [here](https://downloads.raspberrypi.org/raspios_full_armhf/images/raspios_full_armhf-2022-09-26/2022-09-22-raspios-bullseye-armhf-full.img.xz) to download the image manually.
 2. Insert the SD card into the Raspberry Pi and log into it via SSH using the username and password defined in step 1.
 3. Clone this repository `git clone https://github.com/austinnebel/climate-controller`
-4. Navigate into the **install/** directory and run `sh install`. This will install all files and services onto the device. Once finished, the device will reboot.
+4. Navigate into the **install/** directory and run `sudo bash install`. This will install all files and services onto the device. Once finished, the device will reboot.
 5. Visit [http://localhost:3000](http://localhost:3000) to see the web application.
