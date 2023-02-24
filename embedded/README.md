@@ -1,7 +1,6 @@
 # Climate Controller Embedded System
 
-This project contains the embedded components of the project. These components record data through hardware
-sensors and publish the information to the backend project.
+This project contains the embedded components of the project. These components record data through hardware sensors and publish the information to the backend project.
 
 To run this project in a docker container, run the following in this directory:
 
@@ -13,7 +12,7 @@ docker run climate-controller-embedded
 
 > **WARNING**
 >
-> If this project is not run in a Raspberry Pi environment, it will automatically switch to a mock implementation of the DHT22 sensor and a warning will be printed to the console. This is done to improve development environment; otherwise, proper testing could only take place on the Raspberry Pi itself.
+> If this project is not run in a Raspberry Pi environment, it will automatically switch to a mock implementation of the DHT22 sensor and a warning will be printed to the console. This is done to improve the development environment; otherwise, proper testing could only take place on the Raspberry Pi itself.
 
 > **NOTE**
 >
@@ -28,9 +27,8 @@ docker run climate-controller-embedded
 
 ## Installation
 
-1. Copy the contents of **config.example.ini** into a new file **config.ini**
-    - This can be easily done in Linux with `cat config.example.ini > config.ini`
-    - Most variables can be left alone, however the `username` and `password` fields in the `[SERVER]` section are required. These are the username and password to the backend/ Django project.
-2. Run `pipenv install` in this directory.
-3. Run `pipenv shell` to enter the Pip environment.
-4. Run `python main.py` to start the project.
+1. Copy the contents of **config.example.ini** and **.env.example** into new files named **config.ini** and **.env** respectively.
+2. Modify **config.ini** and **.env** as needed. Each variable has a description included above them.
+3. Run `pipenv install` in this directory.
+4. Run `pipenv shell` to enter the Pip environment.
+5. Run `python main.py` to start the project.
