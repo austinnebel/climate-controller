@@ -1,0 +1,25 @@
+version: "3"
+services:
+    climate-controller-backend:
+        image: climate-controller-backend
+        build: ./backend
+        ports:
+            - 8000:8000
+        depends_on:
+            - redis
+    climate-controller-frontend:
+        image: climate-controller-frontend
+        build: ./backend
+        ports:
+            - 3000:3000
+        depends_on:
+            - climate-controller-backend
+    climate-controller-embedded:
+        image: climate-controller-embedded
+        build: ./embedded
+        depends_on:
+            - climate-controller-backend
+    redis:
+        image: redis:5
+        ports:
+            - 6379:6379

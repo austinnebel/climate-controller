@@ -1,30 +1,22 @@
-import {
-    AppContainer,
-    AppSection,
-    DataOverview,
-    GraphContainer,
-} from "components";
-import { useAPI } from "hooks/useAPI";
-
-//const SERVER = "nebelaustin.tplinkdns.com:4585";
-const SERVER = "192.168.1.117:8000";
+import { Typography } from "@mui/material";
+import { useClimateData, useDeviceData } from "api/hooks";
+import { LoadingIndicator } from "components";
+import { DataOverviewSection } from "screens/main/DataOverviewSection";
+import { DataGraphSection } from "screens/main/GraphSection";
 
 export const MainScreen = () => {
-    const { climateData } = useAPI(SERVER);
+    const [climateData, loading] = useClimateData();
 
-    const latestData = climateData?.length
-        ? climateData[climateData.length - 1]
-        : undefined;
-
+    if (loading) {
+        return <LoadingIndicator />;
+    }
+    if (climateData.length === 0) {
+        return <Typography>Error fetching data.</Typography>;
+    }
     return (
-        <AppContainer>
-            <AppSection heading="Climate">
-                <DataOverview data={latestData} />
-            </AppSection>
-
-            <AppSection heading="History">
-                <GraphContainer data={climateData} />
-            </AppSection>
-        </AppContainer>
+        <>
+            <DataOverviewSection data={climateData} />
+            <DataGraphSection data={climateData} />
+        </>
     );
 };

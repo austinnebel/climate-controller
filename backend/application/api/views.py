@@ -10,7 +10,7 @@ from application.models import ClimateData, DeviceData
 from application.serializers import ClimateDataSerializer, DeviceDataSerializer
 
 
-TIME_DURATION = timedelta(hours = 3)
+DEFAULT_TIME_DURATION = timedelta(hours=3)
 
 class TimedDataView(viewsets.ViewSet):
 
@@ -22,8 +22,10 @@ class TimedDataView(viewsets.ViewSet):
         """
         Lists all data entries.
         """
-        duration = int(request.data.get("duration")) if request.data.get("duration") else TIME_DURATION
+        # determine how far backwards to retrieve data
+        duration = int(request.data.get("duration")) if request.data.get("duration") else DEFAULT_TIME_DURATION
 
+        # sort the query by time and filter out times outside of `duration`
         queryset = self.model.objects.order_by('time').filter(time__gte=datetime.now() - duration)
         serializer = self.serializer(queryset, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
@@ -71,7 +73,7 @@ class TimedDataView(viewsets.ViewSet):
         """
         Removes old entries from the database.
         """
-        expire_time = int(request.data.get("expire_time")) if request.data.get("expire_time") else TIME_DURATION
+        expire_time = int(request.data.get("expire_time")) if request.data.get("expire_time") else DEFAULT_TIME_DURATION
 
         queryset = self.model.objects.filter(time__lte=datetime.now() - expire_time)
         serializer = self.serializer(queryset, many=True)

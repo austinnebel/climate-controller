@@ -1,6 +1,6 @@
-*.png
 *.log
 */.venv
 .venv
-install/
 config.ini
+__pycache__
+.vscode

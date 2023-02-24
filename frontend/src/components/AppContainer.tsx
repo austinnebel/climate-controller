@@ -1,4 +1,3 @@
-import { Container } from "@mui/material";
 import AppHeader from "./AppHeader";
 
 /**
@@ -7,7 +6,7 @@ import AppHeader from "./AppHeader";
  */
 export const AppContainer = ({ children }: { children: React.ReactNode }) => {
     return (
-        <Container
+        <div
             style={{
                 display: "flex",
                 flexDirection: "column",
@@ -17,7 +16,7 @@ export const AppContainer = ({ children }: { children: React.ReactNode }) => {
         >
             <AppHeader />
 
-            <Container
+            <div
                 style={{
                     display: "flex",
                     flexDirection: "column",
@@ -26,8 +25,8 @@ export const AppContainer = ({ children }: { children: React.ReactNode }) => {
                 }}
             >
                 {children}
-            </Container>
-        </Container>
+            </div>
+        </div>
     );
 };
 
