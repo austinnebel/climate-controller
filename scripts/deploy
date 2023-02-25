@@ -1,0 +1,28 @@
+#!/bin/bash
+
+# This deploys all docker images to the docker repository.
+
+# Validates directory
+if [[ `basename $PWD` != "scripts" ]];
+then
+    echo "Failed to deploy docker images. Please run this script from within the 'scripts/' directory."
+    exit
+fi
+
+echo
+"This will deploy 3 docker images to a docker hub namespace of your choosing. \
+The images will be named \"climate-controller-frontend\" \"climate-controller-backend\", and \"climate-controller-embedded\". \
+Do not continue if you do not want to publish these images. \n
+"
+
+echo "Enter the docker hub namespace to deploy images to: "
+read NAMESPACE
+
+echo "Deploying frontend to $NAMESPACE/climate-controller-frontend..."
+docker buildx build -t $NAMESPACE/climate-controller-frontend -o type=registry --platform=linux/x86_64,linux/arm/v6  ../frontend
+
+echo "Deploying embedded to $NAMESPACE/climate-controller-embedded..."
+docker buildx build -t $NAMESPACE/climate-controller-embedded -o type=registry --platform=linux/x86_64,linux/arm/v6  ../embedded
+
+echo "Deploying backend to $NAMESPACE/climate-controller-backend..."
+docker buildx build -t $NAMESPACE/climate-controller-backend -o type=registry --platform=linux/x86_64,linux/arm/v6  ../backend

@@ -62,16 +62,19 @@ createSecret () {
 
 ##################### Read backend credentials #####################
 
-echo "Enter the device hostname and port (ex. 127.0.0.1:8000): "
+echo "Configuring a new Django instance. \
+The values entered below will be used to create a Django admin and allow login access to Django. \n"
+
+echo "Enter the hostname and port that will be used to access Django (ex. 127.0.0.1:8000): "
 read DJANGO_HOST
 
-echo "Enter an admin username: "
+echo "Enter a Django admin username: "
 read USERNAME
 
-echo "Enter an admin email:"
+echo "Enter a Django admin email:"
 read EMAIL
 
-echo "Enter an admin password: "
+echo "Enter a Django admin password: "
 read PASSWORD
 
 ##################### Frontend configuration #####################

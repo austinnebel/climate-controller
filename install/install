@@ -13,6 +13,13 @@ then
     exit
 fi
 
+echo "Enter the docker hub namespace to pull images from: "
+read NAMESPACE
+FRONTEND_IMAGE=$NAMESPACE/climate-controller-frontend:latest
+BACKEND_IMAGE=$NAMESPACE/climate-controller-backend:latest
+EMBEDDED_IMAGE=$NAMESPACE/climate-controller-embedded:latest
+echo -e "Will pull images \"$FRONTEND_IMAGE\", \"$BACKEND_IMAGE\", and \"$EMBEDDED_IMAGE\". \n"
+
 echo "Updating build tools..."
 
 # Update apt
@@ -66,9 +73,34 @@ newgrp docker
 
 echo "Installing climate service..."
 
+# Write docker-compose.yml to /home/pi
+echo -e "version: \"3\"
+services:
+    climate-controller-backend:
+        image: $BACKEND_IMAGE
+        ports:
+            - 8000:8000
+        depends_on:
+            - redis
+    climate-controller-frontend:
+        image: $FRONTEND_IMAGE
+        ports:
+            - 3000:3000
+        depends_on:
+            - climate-controller-backend
+    climate-controller-embedded:
+        image: $EMBEDDED_IMAGE
+        privileged: true
+        depends_on:
+            - climate-controller-backend
+    redis:
+        image: redis:5
+        ports:
+            - 6379:6379
+" > /home/pi/docker-compose.yml
+
 # Copy service file to /etc/systemd/system/ and comopse file to home directory
 cp ./climate.service /etc/systemd/system/
-cp ./docker-compose.yml /home/pi
 
 # Reload systemcl
 systemctl daemon-reload
