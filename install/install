@@ -80,6 +80,9 @@ services:
         image: $BACKEND_IMAGE
         ports:
             - 8000:8000
+        volumes:
+            - \"/etc/timezone:/etc/timezone:ro\"
+            - \"/etc/localtime:/etc/localtime:ro\"
         depends_on:
             - redis
     climate-controller-frontend:
@@ -91,6 +94,9 @@ services:
     climate-controller-embedded:
         image: $EMBEDDED_IMAGE
         privileged: true
+        volumes:
+            - \"/etc/timezone:/etc/timezone:ro\"
+            - \"/etc/localtime:/etc/localtime:ro\"
         depends_on:
             - climate-controller-backend
     redis:
