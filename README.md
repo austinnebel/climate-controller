@@ -6,6 +6,9 @@
     -   [Installation](#installation)
         -   [Local Setup](#local-setup)
         -   [Raspberry Pi Setup](#raspberry-pi-setup)
+            -   [Build and deploy the Docker Images](#build-and-deploy-the-docker-images)
+            -   [Initializing a Raspberry Pi](#initializing-a-raspberry-pi)
+            -   [Installing the Images and Services](#installing-the-images-and-services)
     -   [Project Architecture](#project-architecture)
         -   [Embedded Components](#embedded-components)
         -   [Django Backend](#django-backend)
@@ -50,19 +53,41 @@ To run this project locally, navigate to the **scripts/** folder and run `./conf
 
 ### Raspberry Pi Setup
 
-This explains how to initialize a Raspberry Pi to run the code in this repository.
+This explains how to initialize a Raspberry Pi to run the code in this repository. The first few steps require you to configure, build, and push the images to Docker Hub. The next steps explain how to initialize a Raspberry Pi and install these images.
 
 > **NOTE**
 >
 > If you only want to run the code on your local machine you can skip this section.
 
+#### Build and deploy the Docker Images
+
+To build and deploy the project on your local machine, execute the following commands:
+
+1. `git clone https://github.com/austinnebel/climate-controller` - Clones this repository.
+2. `cd scripts` - Navigates to the **scripts/** directory.
+3. `./configure` - Configure the docker environments.
+4. `./deploy` - Deploys all docker images to Docker Hub.
+    - The `deploy` script will ask you what Docker Hub namespace to publish to before continuing. See **scripts/deploy** for more details.
+
+#### Initializing a Raspberry Pi
+
+Now, you can initialize the Raspberry Pi:
+
 1. Write the Raspberry OS 32-Bit (Debian/Bullseye) image to an SD card using [Raspberry Pi Imager](https://www.raspberrypi.com/software/).
     - Enable SSH, keep the username as "pi", and assign a password in the settings before writing the OS.
     - Click [here](https://downloads.raspberrypi.org/raspios_full_armhf/images/raspios_full_armhf-2022-09-26/2022-09-22-raspios-bullseye-armhf-full.img.xz) to download the image manually.
 2. Insert the SD card into the Raspberry Pi and log into it via SSH using the username and password defined in step 1.
-3. Clone this repository `git clone https://github.com/austinnebel/climate-controller`
-4. Navigate into the **install/** directory and run `sudo bash install`. This will install all files and services onto the device. Once finished, the device will reboot.
-5. Visit [http://localhost:3000](http://localhost:3000) to see the web application.
+
+#### Installing the Images and Services
+
+On the Raspberry Pi, run the following commands to pull the Docker images that were deployed during the steps in [Build and deploy the Docker Images](#build-and-deploy-the-docker-images):
+
+1. `git clone https://github.com/austinnebel/climate-controller` - Clones this repository.
+2. `cd climate-controller/install` - Navigate to the **install/** directory.
+3. `sudo bash install` - Updates the device, installs docker, pulls all Docker images from [Build and deploy the Docker Images](#build-and-deploy-the-docker-images), and creates a `systemctl` service that will run the images automatically at all times. Once finished, the device will reboot.
+    - The `install` script will ask you what Docker Hub namespace to pull from before continuing. See **install/install** for more details.
+
+Once all above steps are complete, visit http://[raspberry pi IP address]:3000 to see the web application.
 
 ## Project Architecture
 
